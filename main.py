@@ -1,5 +1,7 @@
 from image_processing.Image import Image
+from image_processing.models.PerspectiveGrid import PerspectiveGrid
 import cv2
+import os
 
 # Define the corner points
 top_right_corner = (1054, 104)
@@ -10,12 +12,28 @@ bottom_right_corner = (1014, 1726)
 # Load and process the image
 image = Image("assets/oak-d_images/frame_010.jpg")
 
-# Draw the grid
-grid_image = image.draw_grid(
+# Create the perspective grid
+grid = PerspectiveGrid(
     top_right_corner, top_left_corner, bottom_left_corner, bottom_right_corner
 )
 
-# Show the result
+# First, draw and show the grid
+grid_image = grid.draw_grid(image.get_image())
 cv2.imshow("Grid", grid_image)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
+
+# Then, extract and save the squares
+squares = grid.get_grid_squares(image.get_image())
+
+# Create output directory for squares
+os.makedirs("output/squares", exist_ok=True)
+
+# Save each square
+for square in squares:
+    # Save the square image
+    output_path = f"output/squares/row_{square.row}_col_{square.col}.jpg"
+    cv2.imwrite(output_path, square.image)
+
+    # Print square information
+    print(f"Saved square at row {square.row}, col {square.col} to {output_path}")

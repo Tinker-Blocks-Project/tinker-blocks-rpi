@@ -1,5 +1,6 @@
 import cv2
 
+
 class ImageOperations:
     def __init__(self, image_path):
         self.image_path = image_path
