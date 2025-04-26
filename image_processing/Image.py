@@ -70,26 +70,54 @@ class Image(ImageOperations):
         bl = np.array(bottom_left)
         br = np.array(bottom_right)
 
+        # Calculate the perspective transform matrix
+        src_points = np.float32([tr, tl, bl, br])
+        width = max(np.linalg.norm(tr - tl), np.linalg.norm(br - bl))
+        height = max(np.linalg.norm(tl - bl), np.linalg.norm(tr - br))
+
+        dst_points = np.float32(
+            [
+                [width - 1, 0],  # top right
+                [0, 0],  # top left
+                [0, height - 1],  # bottom left
+                [width - 1, height - 1],  # bottom right
+            ]
+        )
+
+        matrix = cv2.getPerspectiveTransform(src_points, dst_points)
+
         # Draw horizontal lines
         for i in range(17):  # 16 squares + 1 line
-            # Calculate interpolation factor
-            t = i / 16.0
+            y = int(i * height / 16)
+            # Create points in the destination space
+            start_dst = np.array([0, y, 1])
+            end_dst = np.array([width - 1, y, 1])
 
-            # Calculate start and end points for this horizontal line
-            start_point = tuple(map(int, tr + t * (br - tr)))
-            end_point = tuple(map(int, tl + t * (bl - tl)))
+            # Transform back to source space
+            start_src = np.dot(np.linalg.inv(matrix), start_dst)
+            end_src = np.dot(np.linalg.inv(matrix), end_dst)
+
+            # Convert to image coordinates
+            start_point = tuple(map(int, start_src[:2] / start_src[2]))
+            end_point = tuple(map(int, end_src[:2] / end_src[2]))
 
             # Draw the line
             cv2.line(grid_image, start_point, end_point, (0, 255, 0), 1)
 
         # Draw vertical lines
         for i in range(11):  # 10 squares + 1 line
-            # Calculate interpolation factor
-            t = i / 10.0
+            x = int(i * width / 10)
+            # Create points in the destination space
+            start_dst = np.array([x, 0, 1])
+            end_dst = np.array([x, height - 1, 1])
 
-            # Calculate start and end points for this vertical line
-            start_point = tuple(map(int, tr + t * (tl - tr)))
-            end_point = tuple(map(int, br + t * (bl - br)))
+            # Transform back to source space
+            start_src = np.dot(np.linalg.inv(matrix), start_dst)
+            end_src = np.dot(np.linalg.inv(matrix), end_dst)
+
+            # Convert to image coordinates
+            start_point = tuple(map(int, start_src[:2] / start_src[2]))
+            end_point = tuple(map(int, end_src[:2] / end_src[2]))
 
             # Draw the line
             cv2.line(grid_image, start_point, end_point, (0, 255, 0), 1)
