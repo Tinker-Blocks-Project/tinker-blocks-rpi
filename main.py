@@ -1,91 +1,59 @@
+from image_processing.Image import *
 import cv2
-import pytesseract
-import numpy as np
-from tabulate import tabulate
+img = Image('pics/frame_000.jpg', scale_percent=50)
+def has_distinct_color_channel(rgb, threshold=30):
+    """
+    Check if at least one RGB channel is significantly different from others.
+    
+    Args:
+        rgb: Tuple of (R, G, B) values
+        threshold: Minimum difference required between max and min channel
+    
+    Returns:
+        True if the color has a distinct channel, False otherwise
+    """
+    r, g, b = rgb
+    
+    # Calculate the range between max and min channel values
+    max_val = max(r, g, b)
+    min_val = min(r, g, b)
+    range_val = max_val - min_val
+    
+    # If the range is greater than threshold, then at least one channel is distinct
+    return range_val > threshold
+
+def find_border(rows,cols):
+    start_pixel = (0, 0)
+    for i in range(rows):
+        for j in range(cols):
+            # Get the RGB values of the pixel
+            rgb = tuple(img.image[i, j])
+            
+            # Check if the pixel has a distinct color channel
+            if has_distinct_color_channel(rgb):
+                start_pixel = (i, j)
+                print(rgb)
+                # Draw a circle around the pixel
+                
+                return start_pixel
+rows = img.image.shape[0]
+cols = img.image.shape[1]
 
 
-def findLeftBorder(img, r, c):
-    for i in range(r):
-        for j in range(c):
-            if img[i][j] < 5:
-                return i, j
+start_pixel_y , start_pixel_x = find_border(rows,cols)
 
+cell_width = 40
+cell_height = 40
 
-def findRightBorder(img, r, c):
-    for j in range(c - 1, 0, -1):
-        if img[r][j] < 5:
-            return r, j
+print("Start pixel:", start_pixel_y, start_pixel_x)
 
+i = start_pixel_y 
+for j in range(start_pixel_x, cols, cell_width+12):
+    # Draw a rectangle around the cell
+    cv2.rectangle(img.image, (j, i), (j + cell_width, i + cell_height), (255, 0, 0), 1)
 
-def findLowerBorder(img, r, c):
-    for i in range(r - 1, 0, -1):
-        if img[i][c] < 5:
-            return i, c
+        
 
+print("Start pixel with distinct color channel:", find_border(rows,cols))
 
-def applyFilters(img):
-    # Convert to grayscale
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    # Apply adaptive thresholding (Ensures binary image)
-    binary = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
-
-    # Invert image if needed (text is black, background is white)
-    inverted = cv2.bitwise_not(binary)
-
-    # **Detect Horizontal Lines**
-    kernel_h = cv2.getStructuringElement(cv2.MORPH_RECT, (50, 1))  # Width affects sensitivity
-    horizontal_lines = cv2.morphologyEx(inverted, cv2.MORPH_OPEN, kernel_h, iterations=2)
-
-    # **Detect Vertical Lines**
-    kernel_v = cv2.getStructuringElement(cv2.MORPH_RECT, (1, 50))  # Height affects sensitivity
-    vertical_lines = cv2.morphologyEx(inverted, cv2.MORPH_OPEN, kernel_v, iterations=2)
-
-    # **Remove Lines while Keeping Text**
-    mask = cv2.bitwise_or(horizontal_lines, vertical_lines)  # Combine detected lines
-    cleaned = cv2.bitwise_and(inverted, cv2.bitwise_not(mask))  # Remove lines
-
-    # Invert back to original format (black text, white background)
-    final_img = cv2.bitwise_not(cleaned)
-    return final_img
-
-
-img_readed = cv2.imread("assets/simple_image.png", 1)
-row_size, column_size, _ = img_readed.shape
-img = cv2.cvtColor(img_readed, cv2.COLOR_BGR2GRAY)
-
-x1, y1 = findLeftBorder(img, row_size, column_size)
-x2, y2 = findRightBorder(img, x1, column_size)
-x3, y3 = findLowerBorder(img, row_size, y1)
-x4, y4 = x3, y2  # fourth point does not need a function
-
-rows = 8
-columns = 8
-width = y2 - y1
-height = x3 - x1
-cell_width = width // columns
-cell_height = height // rows
-
-result = [[0] * columns for i in range(rows)]
-
-for i in range(rows):
-    for j in range(columns):
-        x, y = x1 + i * cell_height, y1 + j * cell_width
-        h, w = cell_height, cell_width
-        img_cropped = img_readed[x:x + h, y:y + w]
-        final_img = applyFilters(img_cropped)
-        # Resize for better OCR accuracy
-        resized = cv2.resize(final_img, (w * 2, h * 2), interpolation=cv2.INTER_CUBIC)
-
-        # OCR Processing
-        custom_config = r'--oem 3 --psm 6'  # Set OCR mode
-        text = pytesseract.image_to_string(resized, config=custom_config, lang="eng").strip()
-
-        print(f"Extracted Text: {text}")
-        result[i][j] = text
-
-        #cv2.imshow('window', resized)
-        #cv2.waitKey(0)
-
-cv2.destroyAllWindows()
-
-print(tabulate(result, tablefmt="grid"))
+img.show()
