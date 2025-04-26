@@ -1,5 +1,4 @@
-from image_processing.Image import Image
-from image_processing.models.PerspectiveGrid import PerspectiveGrid
+from models import Image, PerspectiveGrid
 import cv2
 import os
 
@@ -11,6 +10,10 @@ bottom_right_corner = (1014, 1726)
 
 # Load and process the image
 image = Image("assets/oak-d_images/frame_010.jpg")
+
+# Convert to grayscale
+gray_image = image.to_grayscale()
+image.set_image(gray_image)
 
 # Create the perspective grid
 grid = PerspectiveGrid(
