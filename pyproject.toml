@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "tinker-blocks-rpi"
+version = "0.1.0"
+description = ""
+authors = ["Izzat Alsharif <work@izzatalsharif.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+opencv-python = "^4.11.0.86"
+numpy = "^2.2.5"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
