@@ -57,3 +57,4 @@ class EasyOCR:
         """
         results = self.detect_text(image_path)
         return self.draw_boxes(image_path, results)
+    
