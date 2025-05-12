@@ -1,6 +1,11 @@
 from image_processing import Image
 from image_processing.grid import PerspectiveGrid
+from image_processing.ocr import EasyOCR
+from image_processing import OCR2Grid
 import os
+import cv2
+import numpy as np
+
 
 # Load and process the image
 image = Image.from_file("assets/oak-d_images/frame_010.jpg")
@@ -11,7 +16,7 @@ rotated = image.rotate_90_clockwise()
 # Convert to grayscale
 gray = rotated.to_grayscale()
 
-# Define the corner points
+# Define the corner points for the grid
 top_right_corner = (1054, 104)
 top_left_corner = (30, 91)
 bottom_left_corner = (33, 1712)
@@ -25,21 +30,41 @@ grid = PerspectiveGrid(
     bottom_right=bottom_right_corner,
 )
 
-# First, draw and show the grid
-grid_image = grid.draw_grid(gray)
-grid_image.show()
+# Instead of showing the grid, save it directly
+# Create output directory for results
+os.makedirs("output", exist_ok=True)
 
-# Then, extract and save the squares
+# Draw the grid and save it
+grid_image = grid.draw_grid(gray)
+grid_image.save("output/grid_image.jpg")
+print("Grid image saved to output/grid_image.jpg")
+
+# For text detection, save the rotated image to a temporary file
+temp_path = "temp_rotated_image.jpg"
+rotated.save(temp_path)
+print("Rotated image saved to", temp_path)
+
+# Read Text using OCR MODEL
+ocr_reader = EasyOCR()
+ocr_list = ocr_reader.process_image(temp_path)
+
+# Clean up temporary file
+if os.path.exists(temp_path):
+    try:
+        os.remove(temp_path)
+    except:
+        print(f"Could not remove temporary file {temp_path}")
+
+
+# Continue with your original code for grid squares
+print("\nProcessing grid squares...")
 squares = grid.get_grid_squares(gray)
 
-# Create output directory for squares
-os.makedirs("output/squares", exist_ok=True)
+# this will convert ocr results to final grid
+OCR2Grid_instance = OCR2Grid(ocr_list, squares)
+OCR2Grid_instance.fill_grid()
+OCR2Grid_instance.print_grid()
 
-# Save each square
-for square in squares:
-    # Save the square image
-    output_path = f"output/squares/row_{square.row}_col_{square.col}.jpg"
-    square.save(output_path)
 
-    # Print square information
-    print(f"Saved square at row {square.row}, col {square.col} to {output_path}")
+
+print("\nAll processing complete!")

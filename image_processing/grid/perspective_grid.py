@@ -139,7 +139,6 @@ class PerspectiveGrid(BaseModel):
                     square_image = square_image[y : y + h, x : x + w]
 
                     # Update corners to be relative to the cropped image
-                    src_corners = [(cx - x, cy - y) for cx, cy in src_corners]
 
                 # Create GridSquare object
                 square = GridSquare(
