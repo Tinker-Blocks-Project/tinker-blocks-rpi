@@ -43,7 +43,7 @@ class EasyOCR:
                 # Store the text in the dictionary
                 self.text.append({
                     'text': text,
-                    'corners': bbox
+                    'corners': [[float(x), float(y)] for (x, y) in bbox]
                 })
         # Save the result
         cv2.imwrite("output/text_detection_result.jpg", cv_result)

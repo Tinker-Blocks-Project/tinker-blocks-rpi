@@ -1,6 +1,7 @@
 from image_processing import Image
 from image_processing.grid import PerspectiveGrid
 from image_processing.ocr import EasyOCR
+from image_processing.ocr import EasyOCRClient
 from image_processing import OCR2Grid
 import os
 import cv2
@@ -45,7 +46,7 @@ rotated.save(temp_path)
 print("Rotated image saved to", temp_path)
 
 # Read Text using OCR MODEL
-ocr_reader = EasyOCR()
+ocr_reader = EasyOCRClient('127.0.0.1')
 ocr_list = ocr_reader.process_image(temp_path)
 
 # Clean up temporary file
