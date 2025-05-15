@@ -3,13 +3,16 @@ from image_processing.grid import PerspectiveGrid
 from image_processing.ocr import EasyOCR
 from image_processing.ocr import EasyOCRClient
 from image_processing import OCR2Grid
+from camera.capture import capture_image
+
 import os
 import cv2
 import numpy as np
 
-
+image_path_captured = capture_image()
+print(image_path_captured)
 # Load and process the image
-image = Image.from_file("assets/oak-d_images/frame_010.jpg")
+image = Image.from_file(f"assets/{image_path_captured}")
 
 # Rotate the image
 rotated = image.rotate_90_clockwise()
@@ -46,7 +49,7 @@ rotated.save(temp_path)
 print("Rotated image saved to", temp_path)
 
 # Read Text using OCR MODEL
-ocr_reader = EasyOCRClient('127.0.0.1')
+ocr_reader = EasyOCRClient('172.23.189.49')
 ocr_list = ocr_reader.process_image(temp_path)
 
 # Clean up temporary file
