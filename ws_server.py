@@ -1,10 +1,16 @@
 import asyncio
 import websockets
 import json
-from process_controller import start_process, stop_process
+from process_controller import start_process, stop_process, register_send_func
 
 connected_clients = set()
-
+async def send_to_mobile(message: str):
+    for client in connected_clients.copy():
+        try:
+            await client.send(message)
+        except Exception as e:
+            print(f"❌ Failed to send message: {e}")
+            connected_clients.remove(client)
 async def handler(websocket):
     print("✅ Client connected")
     connected_clients.add(websocket)
@@ -29,13 +35,7 @@ async def handler(websocket):
     finally:
         connected_clients.remove(websocket)
 
-async def send_to_mobile(message: str):
-    for client in connected_clients.copy():
-        try:
-            await client.send(message)
-        except Exception as e:
-            print(f"⚠️ Failed to send message: {e}")
-
 def start_ws_server():
+    register_send_func(send_to_mobile)
     print("🧩 WebSocket server running on ws://0.0.0.0:8765")
     return websockets.serve(handler, "0.0.0.0", 8765)
