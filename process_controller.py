@@ -19,7 +19,7 @@ async def start_process():
 
     try:
         image_path_captured = capture_image()
-        send_to_mobile( f"Captured image: {image_path_captured}")
+        await send_to_mobile( f"Captured image: {image_path_captured}")
 
         image = Image.from_file(f"assets/{image_path_captured}")
         rotated = image.rotate_90_clockwise()
