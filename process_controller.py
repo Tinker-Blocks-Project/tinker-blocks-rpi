@@ -17,8 +17,8 @@ current_process_task = None
 _current_process_task: Optional[asyncio.Task] = None
 _send_to_mobile: Optional[Callable[[str], Awaitable[None]]] = None
 def register_send_func(send_func):
-    global send_to_mobile
-    send_to_mobile = send_func
+    global _send_to_mobile
+    _send_to_mobile = send_func
 
 async def _send(message: str):
     if _send_to_mobile:
@@ -28,11 +28,11 @@ async def start_process():
     global _current_process_task
     
     if _current_process_task and not _current_process_task.done():
-        await _send("⚠️ Process already running!")
+        await _send("Process already running!")
         return
 
     _current_process_task = asyncio.create_task(_process_workflow())
-    await _send("🚀 Process started")
+    await _send("Process started")
 
 async def _process_workflow():
     try:
@@ -64,7 +64,7 @@ async def _process_workflow():
         os.makedirs("output", exist_ok=True)
         grid_image = grid.draw_grid(gray)
         grid_image.save("output/grid_image.jpg")
-        await send_to_mobile("Grid image saved.")
+        await _send("Grid image saved.")
 
         await _check_cancellation()
 
@@ -73,8 +73,9 @@ async def _process_workflow():
 
         # Make OCR processing cancellable
         ocr_reader = EasyOCRClient('192.168.1.6')
-        ocr_list = await asyncio.get_event_loop().run_in_executor(None, lambda: ocr_reader.process_image(temp_path))
-
+        ocr_list = ocr_reader.process_image(temp_path)
+        await _send("OCR processing complete.")
+        await _check_cancellation()
         if os.path.exists(temp_path):
             try:
                 os.remove(temp_path)
@@ -88,13 +89,13 @@ async def _process_workflow():
         OCR2Grid_instance.fill_grid()
         OCR2Grid_instance.print_grid()
 
-        await send_to_mobile("Grid processed:")
-        await send_to_mobile("Processing complete.")
+        await _send("Grid processed:")
+        await _send("Processing complete.")
         await _check_cancellation()
     except asyncio.CancelledError:
-        await _send("🛑 Processing cancelled")
+        await _send("Processing cancelled")
     except Exception as e:
-        await _send(f"❌ Error: {str(e)}")
+        await _send(f"Error: {str(e)}")
     finally:
         global _current_process_task
         _current_process_task = None
@@ -111,9 +112,9 @@ async def stop_process():
             await _current_process_task
         except asyncio.CancelledError:
             pass
-        await _send("⏹️ Process stopped")
+        await _send("Process stopped")
     else:
-        await _send("⚠️ No active process to stop")
+        await _send("No active process to stop")
 
 def get_current_task():
     return _current_process_task

@@ -18,7 +18,7 @@ async def handler(websocket):
     connected_clients.add(websocket)
     try:
         async for message in websocket:
-            print(f"📩 Received: {message}")
+            print(f"Received: {message}")
             try:
                 data = json.loads(message)
                 if data.get("command") == "run":
@@ -31,7 +31,7 @@ async def handler(websocket):
             except json.JSONDecodeError:
                 await websocket.send(json.dumps({"error": "Invalid JSON"}))
     except websockets.exceptions.ConnectionClosed:
-        print("❌ Client disconnected")
+        print("Client disconnected")
     finally:
         connected_clients.remove(websocket)
 
