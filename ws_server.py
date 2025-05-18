@@ -1,34 +1,33 @@
-# ws_server.py
-
 import asyncio
 import websockets
-import json
-from main import start_process, stop_process  # Functions you’ll define
+from process_controller import start_process, stop_process
 
-clients = set()
+connected_clients = set()
 
-async def handler(websocket, path):
-    clients.add(websocket)
+async def handler(websocket):
+    print("✅ Client connected")
+    connected_clients.add(websocket)
     try:
         async for message in websocket:
-            print("Received from mobile:", message)
-            try:
-                data = json.loads(message)
-                if data.get("command") == "run":
-                    await start_process(websocket)
-                elif data.get("command") == "stop":
-                    await stop_process(websocket)
-            except Exception as e:
-                print("Error processing command:", e)
+            print(f"📩 Received: {message}")
+            if message == "run":
+                await start_process()
+            elif message == "stop":
+                await stop_process()
+            else:
+                print("❓ Unknown command:", message)
+    except websockets.exceptions.ConnectionClosed:
+        print("❌ Client disconnected")
     finally:
-        clients.remove(websocket)
+        connected_clients.remove(websocket)
 
-def send_to_mobile(websocket, msg: str):
-    asyncio.create_task(websocket.send(msg))
+async def send_to_mobile(message: str):
+    for client in connected_clients.copy():
+        try:
+            await client.send(message)
+        except Exception as e:
+            print(f"⚠️ Failed to send message: {e}")
 
 def start_ws_server():
-    loop = asyncio.get_event_loop()
-    start_server = websockets.serve(handler, "0.0.0.0", 8765)
-    loop.run_until_complete(start_server)
-    print("WebSocket server started on ws://0.0.0.0:8765")
-    loop.run_forever()
+    print("🧩 WebSocket server running on ws://0.0.0.0:8765")
+    return websockets.serve(handler, "0.0.0.0", 8765)
