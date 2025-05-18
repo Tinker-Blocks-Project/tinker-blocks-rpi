@@ -1,5 +1,6 @@
 import asyncio
 import websockets
+import json
 from process_controller import start_process, stop_process
 
 connected_clients = set()
@@ -10,12 +11,19 @@ async def handler(websocket):
     try:
         async for message in websocket:
             print(f"📩 Received: {message}")
-            if message == "run":
+            try:
+                obj = json.loads(message)
+                command = obj.get("command")
+            except json.JSONDecodeError:
+                print("❌ Invalid JSON received")
+                continue
+
+            if command == "run":
                 await start_process()
-            elif message == "stop":
+            elif command == "stop":
                 await stop_process()
             else:
-                print("❓ Unknown command:", message)
+                print(f"❓ Unknown command: {command}")
     except websockets.exceptions.ConnectionClosed:
         print("❌ Client disconnected")
     finally:
