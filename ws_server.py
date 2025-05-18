@@ -30,4 +30,4 @@ async def send_to_mobile(message: str):
 
 def start_ws_server():
     print("🧩 WebSocket server running on ws://0.0.0.0:8765")
-    return websockets.serve(handler, "0.0.0.0", 8765)
+    return websockets.serve(handler, "192.168.1.18", 8765)
