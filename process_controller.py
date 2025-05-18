@@ -9,46 +9,32 @@ from camera.capture import capture_image
 import websockets.exceptions
 
 # Global variables
-send_to_mobile = None  # placeholder for injected function
+send_to_mobile = None
 connected_clients = set()
-process_active = False
-should_stop = False
+current_process_task = None
 
 def register_send_func(send_func):
     global send_to_mobile
     send_to_mobile = send_func
 
 async def start_process():
-    global process_active, should_stop
-    
-    if process_active:
-        await send_to_mobile("Process is already running")
-        return
-        
-    process_active = True
-    should_stop = False
-    
     print("🚀 Running Raspberry Pi main logic...")
     await send_to_mobile("Raspberry Pi: started processing")
 
     try:
-        # Check if we should stop before each major step
-        if should_stop:
-            return
-            
-        image_path_captured = capture_image()
+        # Make the capture_image() cancellable
+        image_path_captured = await asyncio.get_event_loop().run_in_executor(None, capture_image)
         await send_to_mobile(f"Captured image: {image_path_captured}")
 
-        if should_stop:
-            return
-            
+        # Check for cancellation periodically
+        await asyncio.sleep(0)  # Yield control to event loop
+
         image = Image.from_file(f"assets/{image_path_captured}")
         rotated = image.rotate_90_clockwise()
         gray = rotated.to_grayscale()
 
-        if should_stop:
-            return
-            
+        await asyncio.sleep(0)  # Yield control
+
         top_right_corner = (1054, 104)
         top_left_corner = (30, 91)
         bottom_left_corner = (33, 1712)
@@ -66,17 +52,14 @@ async def start_process():
         grid_image.save("output/grid_image.jpg")
         await send_to_mobile("Grid image saved.")
 
-        if should_stop:
-            return
-            
+        await asyncio.sleep(0)  # Yield control
+
         temp_path = "temp_rotated_image.jpg"
         rotated.save(temp_path)
 
-        if should_stop:
-            return
-            
+        # Make OCR processing cancellable
         ocr_reader = EasyOCRClient('192.168.1.6')
-        ocr_list = ocr_reader.process_image(temp_path)
+        ocr_list = await asyncio.get_event_loop().run_in_executor(None, lambda: ocr_reader.process_image(temp_path))
 
         if os.path.exists(temp_path):
             try:
@@ -84,9 +67,8 @@ async def start_process():
             except:
                 print(f"Could not remove temporary file {temp_path}")
 
-        if should_stop:
-            return
-            
+        await asyncio.sleep(0)  # Yield control
+
         squares = grid.get_grid_squares(gray)
         OCR2Grid_instance = OCR2Grid(ocr_list, squares)
         OCR2Grid_instance.fill_grid()
@@ -94,22 +76,24 @@ async def start_process():
 
         await send_to_mobile("Grid processed:")
         await send_to_mobile("Processing complete.")
-        
+
+    except asyncio.CancelledError:
+        await send_to_mobile("Processing was cancelled")
+        raise
     except Exception as e:
         await send_to_mobile(f"Error during processing: {e}")
     finally:
-        process_active = False
-        should_stop = False
         await send_to_mobile("Raspberry Pi: finished processing")
 
 async def stop_process():
-    global should_stop, process_active
-    
-    if not process_active:
-        await send_to_mobile("No process is currently running")
-        return
-        
-    print("🛑 Stopping processing...")
-    should_stop = True
-    await send_to_mobile("Raspberry Pi: stopping process...")
-    
+    global current_process_task
+    if current_process_task and not current_process_task.done():
+        current_process_task.cancel()
+        try:
+            await current_process_task
+        except asyncio.CancelledError:
+            pass  # Expected when cancelling
+        await send_to_mobile("Raspberry Pi: process stopped")
+    else:
+        await send_to_mobile("No process to stop")
+

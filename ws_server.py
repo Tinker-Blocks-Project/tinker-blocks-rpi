@@ -12,6 +12,7 @@ async def send_to_mobile(message: str):
             print(f"❌ Failed to send message: {e}")
             connected_clients.remove(client)
 async def handler(websocket):
+    global current_process_task
     print("✅ Client connected")
     connected_clients.add(websocket)
     try:
@@ -25,7 +26,10 @@ async def handler(websocket):
                 continue
 
             if command == "run":
-                await start_process()
+                if current_process_task and not current_process_task.done():
+                    await send_to_mobile("Process is already running")
+                else:
+                    current_process_task = asyncio.create_task(start_process())
             elif command == "stop":
                 await stop_process()
             else:
