@@ -1,11 +1,9 @@
 import asyncio
-from ws_server import send_to_mobile
 from image_processing import Image
 from image_processing.grid import PerspectiveGrid
 from image_processing.ocr import EasyOCRClient
 from image_processing import OCR2Grid
 from camera.capture import capture_image
-from ws_server import send_to_mobile
 
 import os
 async def start_process():
