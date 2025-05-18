@@ -6,6 +6,11 @@ from image_processing import OCR2Grid
 from camera.capture import capture_image
 
 import os
+send_to_mobile = None  # placeholder for injected function
+
+def register_send_func(send_func):
+    global send_to_mobile
+    send_to_mobile = send_func
 async def start_process():
     print("🚀 Running Raspberry Pi main logic...")
 
