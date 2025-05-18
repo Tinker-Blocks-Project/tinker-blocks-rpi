@@ -15,11 +15,11 @@ async def start_process():
     print("🚀 Running Raspberry Pi main logic...")
 
     # Example: send a message to the mobile app
-    await send_to_mobile("Raspberry Pi: started processing")
+    send_to_mobile("Raspberry Pi: started processing")
 
     try:
         image_path_captured = capture_image()
-        send_to_mobile( f"Captured image: {image_path_captured}")
+        await send_to_mobile( f"Captured image: {image_path_captured}")
 
         image = Image.from_file(f"assets/{image_path_captured}")
         rotated = image.rotate_90_clockwise()
@@ -57,10 +57,9 @@ async def start_process():
         squares = grid.get_grid_squares(gray)
         OCR2Grid_instance = OCR2Grid(ocr_list, squares)
         OCR2Grid_instance.fill_grid()
-        grid_output = OCR2Grid_instance.get_grid_as_text()
+        OCR2Grid_instance.print_grid()
 
         await send_to_mobile("Grid processed:")
-        await send_to_mobile(grid_output)
 
         await send_to_mobile( "Processing complete.")
     except Exception as e:
