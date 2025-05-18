@@ -7,33 +7,47 @@ from image_processing.ocr import EasyOCRClient
 from image_processing import OCR2Grid
 from camera.capture import capture_image
 import websockets.exceptions
+from typing import Optional, Callable, Awaitable
 
 # Global variables
 send_to_mobile = None
 connected_clients = set()
 current_process_task = None
-
+# Shared state
+_current_process_task: Optional[asyncio.Task] = None
+_send_to_mobile: Optional[Callable[[str], Awaitable[None]]] = None
 def register_send_func(send_func):
     global send_to_mobile
     send_to_mobile = send_func
 
+async def _send(message: str):
+    if _send_to_mobile:
+        await _send_to_mobile(message)   
+
 async def start_process():
-    print("🚀 Running Raspberry Pi main logic...")
-    await send_to_mobile("Raspberry Pi: started processing")
+    global _current_process_task
+    
+    if _current_process_task and not _current_process_task.done():
+        await _send("⚠️ Process already running!")
+        return
 
+    _current_process_task = asyncio.create_task(_process_workflow())
+    await _send("🚀 Process started")
+
+async def _process_workflow():
     try:
-        # Make the capture_image() cancellable
-        image_path_captured = await asyncio.get_event_loop().run_in_executor(None, capture_image)
-        await send_to_mobile(f"Captured image: {image_path_captured}")
-
-        # Check for cancellation periodically
-        await asyncio.sleep(0)  # Yield control to event loop
-
-        image = Image.from_file(f"assets/{image_path_captured}")
+        await _send("Raspberry Pi: started processing")
+        
+        # Your actual processing steps
+        image_path = await asyncio.get_event_loop().run_in_executor(None, capture_image)
+        await _send(f"Captured image: {image_path}")
+        await _check_cancellation()
+        
+        image = Image.from_file(f"assets/{image_path}")
         rotated = image.rotate_90_clockwise()
         gray = rotated.to_grayscale()
 
-        await asyncio.sleep(0)  # Yield control
+        await _check_cancellation()
 
         top_right_corner = (1054, 104)
         top_left_corner = (30, 91)
@@ -52,7 +66,7 @@ async def start_process():
         grid_image.save("output/grid_image.jpg")
         await send_to_mobile("Grid image saved.")
 
-        await asyncio.sleep(0)  # Yield control
+        await _check_cancellation()
 
         temp_path = "temp_rotated_image.jpg"
         rotated.save(temp_path)
@@ -67,7 +81,7 @@ async def start_process():
             except:
                 print(f"Could not remove temporary file {temp_path}")
 
-        await asyncio.sleep(0)  # Yield control
+        await _check_cancellation()
 
         squares = grid.get_grid_squares(gray)
         OCR2Grid_instance = OCR2Grid(ocr_list, squares)
@@ -76,24 +90,31 @@ async def start_process():
 
         await send_to_mobile("Grid processed:")
         await send_to_mobile("Processing complete.")
-
+        await _check_cancellation()
     except asyncio.CancelledError:
-        await send_to_mobile("Processing was cancelled")
-        raise
+        await _send("🛑 Processing cancelled")
     except Exception as e:
-        await send_to_mobile(f"Error during processing: {e}")
+        await _send(f"❌ Error: {str(e)}")
     finally:
-        await send_to_mobile("Raspberry Pi: finished processing")
+        global _current_process_task
+        _current_process_task = None
+        await _send("Raspberry Pi: finished processing")
+
+async def _check_cancellation():
+    await asyncio.sleep(0)  # Yield control for cancellation
 
 async def stop_process():
-    global current_process_task
-    if current_process_task and not current_process_task.done():
-        current_process_task.cancel()
+    global _current_process_task
+    if _current_process_task and not _current_process_task.done():
+        _current_process_task.cancel()
         try:
-            await current_process_task
+            await _current_process_task
         except asyncio.CancelledError:
-            pass  # Expected when cancelling
-        await send_to_mobile("Raspberry Pi: process stopped")
+            pass
+        await _send("⏹️ Process stopped")
     else:
-        await send_to_mobile("No process to stop")
+        await _send("⚠️ No active process to stop")
+
+def get_current_task():
+    return _current_process_task
 
