@@ -3,9 +3,10 @@ import json
 import os
 from image_processing import Image
 from image_processing.grid import PerspectiveGrid
-from image_processing.ocr import EasyOCRClient
+from image_processing.ocr import EasyOCR
 from image_processing import OCR2Grid
 from camera.capture import capture_image
+from camera.CameraClient import capture_image_client
 import websockets.exceptions
 from typing import Optional, Callable, Awaitable
 
@@ -39,11 +40,11 @@ async def _process_workflow():
         await _send("**Processing Started**\n\nHere are the steps:\n1. Capture Image\n2. OCR Scan\n3. Grid Mapping")
         
         # Your actual processing steps
-        image_path = await asyncio.get_event_loop().run_in_executor(None, capture_image)
+        image_path = capture_image_client()
         await _send(f"Captured image: {image_path}")
         await _check_cancellation()
         
-        image = Image.from_file(f"assets/{image_path}")
+        image = Image.from_file(image_path)
         rotated = image.rotate_90_clockwise()
         gray = rotated.to_grayscale()
 
@@ -71,7 +72,7 @@ async def _process_workflow():
         rotated.save(temp_path)
 
         # Make OCR processing cancellable
-        ocr_reader = EasyOCRClient(server_ip)
+        ocr_reader = EasyOCR()
         ocr_list = ocr_reader.process_image(temp_path)
         await _send("OCR processing complete.")
         await _check_cancellation()
@@ -87,10 +88,17 @@ async def _process_workflow():
         OCR2Grid_instance = OCR2Grid(ocr_list, squares)
         OCR2Grid_instance.fill_grid()
         OCR2Grid_instance.print_grid()
-
+        grid_json = OCR2Grid_instance.get_grid_as_json()
         await _send("Grid processed:")
+        await _send(grid_json)
         await _send("Processing complete.")
         await _check_cancellation()
+
+        # interpreter pattern will be here
+
+
+
+        
     except asyncio.CancelledError:
         await _send("Processing cancelled")
     except Exception as e:

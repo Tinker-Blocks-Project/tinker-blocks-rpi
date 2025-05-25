@@ -1,3 +1,4 @@
+import json
 from tabulate import tabulate
 class OCR2Grid:
     def __init__(self, ocr_data,squares):
@@ -32,3 +33,6 @@ class OCR2Grid:
     
     def print_grid(self):
         print(tabulate(self.grid, tablefmt="grid"))
+
+    def get_grid_as_json(self):
+        return json.dumps(self.grid)
