@@ -6,7 +6,7 @@ class EasyOCR:
         """
         Initialize the EasyOCR reader with the specified languages.
         """
-        self.reader = easyocr.Reader(languages)
+        self.reader = easyocr.Reader(languages,gpu=True)
         self.text = []
     
     def detect_text(self, image_path):

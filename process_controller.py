@@ -44,7 +44,7 @@ async def _process_workflow():
         await _send(f"Captured image: {image_path}")
         await _check_cancellation()
         
-        image = Image.from_file(image_path)
+        image = Image.from_file("assets/oak-d_images/frame_010.jpg")
         rotated = image.rotate_90_clockwise()
         gray = rotated.to_grayscale()
 
