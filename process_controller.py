@@ -13,6 +13,7 @@ from typing import Optional, Callable, Awaitable
 send_to_mobile = None
 connected_clients = set()
 current_process_task = None
+server_ip = '192.168.1.102'
 # Shared state
 _current_process_task: Optional[asyncio.Task] = None
 _send_to_mobile: Optional[Callable[[str], Awaitable[None]]] = None
@@ -23,7 +24,6 @@ def register_send_func(send_func):
 async def _send(message: str):
     if _send_to_mobile:
         await _send_to_mobile(message)   
-
 async def start_process():
     global _current_process_task
     
@@ -32,11 +32,11 @@ async def start_process():
         return
 
     _current_process_task = asyncio.create_task(_process_workflow())
-    await _send("Process started")
+    await _send("**Process started**")
 
 async def _process_workflow():
     try:
-        await _send("Raspberry Pi: started processing")
+        await _send("**Processing Started**\n\nHere are the steps:\n1. Capture Image\n2. OCR Scan\n3. Grid Mapping")
         
         # Your actual processing steps
         image_path = await asyncio.get_event_loop().run_in_executor(None, capture_image)
@@ -48,7 +48,6 @@ async def _process_workflow():
         gray = rotated.to_grayscale()
 
         await _check_cancellation()
-
         top_right_corner = (1054, 104)
         top_left_corner = (30, 91)
         bottom_left_corner = (33, 1712)
@@ -72,7 +71,7 @@ async def _process_workflow():
         rotated.save(temp_path)
 
         # Make OCR processing cancellable
-        ocr_reader = EasyOCRClient('192.168.1.6')
+        ocr_reader = EasyOCRClient(server_ip)
         ocr_list = ocr_reader.process_image(temp_path)
         await _send("OCR processing complete.")
         await _check_cancellation()
