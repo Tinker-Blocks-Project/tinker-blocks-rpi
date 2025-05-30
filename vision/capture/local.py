@@ -4,7 +4,7 @@ import time
 import os
 
 
-def capture_image():
+def capture_image() -> str | None:
     # Create pipeline
     pipeline = dai.Pipeline()
 
@@ -50,3 +50,4 @@ def capture_image():
         # cv2.waitKey(0)
 
     cv2.destroyAllWindows()
+    return None

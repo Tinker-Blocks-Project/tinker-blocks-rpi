@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, send_file
+from flask import Flask, jsonify, send_file, Response
 import cv2
 import depthai as dai
 import time
@@ -9,7 +9,7 @@ SAVE_DIR = "assets"
 os.makedirs(SAVE_DIR, exist_ok=True)
 
 
-def capture_image():
+def capture_image() -> str:
     pipeline = dai.Pipeline()
 
     camRgb = pipeline.create(dai.node.ColorCamera)
@@ -41,7 +41,7 @@ def capture_image():
 
 
 @app.route("/capture", methods=["GET"])
-def capture():
+def capture() -> Response | tuple[Response, int]:
     try:
         img_path = capture_image()
         return send_file(img_path, mimetype="image/jpeg")

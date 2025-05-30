@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response
 from vision.ocr.wrapper import EasyOCR
 import os
 
@@ -7,7 +7,7 @@ ocr_engine = EasyOCR()
 
 
 @app.route("/process-image", methods=["POST"])
-def process_image():
+def process_image() -> Response | tuple[Response, int]:
     if "image" not in request.files:
         return jsonify({"error": "No image provided"}), 400
 

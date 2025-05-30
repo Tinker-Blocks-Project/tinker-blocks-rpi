@@ -1,3 +1,5 @@
+"""Vision processing workflow."""
+
 import os
 from typing import Callable, Awaitable
 from vision import Image
@@ -8,7 +10,7 @@ from core.config import config
 
 async def ocr_grid_workflow(
     send_message: Callable[[str], Awaitable[None]], check_cancelled: Callable[[], bool]
-):
+) -> None:
     """
     Complete OCR grid processing workflow.
 

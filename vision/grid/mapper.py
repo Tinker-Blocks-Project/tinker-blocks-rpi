@@ -1,14 +1,18 @@
 import json
 from tabulate import tabulate
+from typing import Any
+from vision.grid.square import GridSquare
 
 
 class OCR2Grid:
-    def __init__(self, ocr_data, squares):
+    def __init__(
+        self, ocr_data: list[dict[str, Any]], squares: list[GridSquare]
+    ) -> None:
         self.ocr_data = ocr_data
-        self.grid = [["" for _ in range(10)] for _ in range(16)]
+        self.grid: list[list[str]] = [["" for _ in range(10)] for _ in range(16)]
         self.squares = squares
 
-    def fill_grid(self):
+    def fill_grid(self) -> list[list[str]]:
         for square in self.squares:
             # Get the square's bounding box from its corners
             corners = square.corners
@@ -34,8 +38,8 @@ class OCR2Grid:
 
         return self.grid
 
-    def print_grid(self):
+    def print_grid(self) -> None:
         print(tabulate(self.grid, tablefmt="grid"))
 
-    def get_grid_as_json(self):
+    def get_grid_as_json(self) -> str:
         return json.dumps(self.grid)

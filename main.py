@@ -1,13 +1,13 @@
 import asyncio
-from typing import Optional, Dict, Any
+from typing import Any
 from core import start_ws_server, broadcast, set_command_processor, ProcessController
 from vision.workflow import ocr_grid_workflow
 
 # Global controller instance
-controller: Optional[ProcessController] = None
+controller: ProcessController | None = None
 
 
-async def handle_run_command(params: Optional[Dict[str, Any]] = None):
+async def handle_run_command(params: dict[str, Any] | None = None):
     """Handle the 'run' command by running the OCR grid workflow."""
     if not controller:
         print("Error: Process controller not initialized")
@@ -38,7 +38,7 @@ async def handle_stop_command():
         await controller.send_message("No active process to stop")
 
 
-async def process_command(command: str, params: Dict[str, Any]):
+async def process_command(command: str, params: dict[str, Any]):
     """Process incoming commands from WebSocket."""
     handlers = {
         "run": lambda: handle_run_command(params),

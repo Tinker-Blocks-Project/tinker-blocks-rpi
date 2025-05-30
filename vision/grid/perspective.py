@@ -23,7 +23,7 @@ class PerspectiveGrid(BaseModel):
         ..., description="Width and height of the transformed grid"
     )
 
-    def __init__(self, **data):
+    def __init__(self, **data: Any) -> None:
         # Calculate matrix and dimensions before calling super().__init__
         top_right = np.array(data["top_right"], dtype=np.float32)
         top_left = np.array(data["top_left"], dtype=np.float32)

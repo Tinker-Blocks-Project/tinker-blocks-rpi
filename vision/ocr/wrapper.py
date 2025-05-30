@@ -1,16 +1,17 @@
 import easyocr
 import cv2
+from typing import Any
 
 
 class EasyOCR:
-    def __init__(self, languages=["en"]):
+    def __init__(self, languages: list[str] = ["en"]) -> None:
         """
         Initialize the EasyOCR reader with the specified languages.
         """
         self.reader = easyocr.Reader(languages, gpu=True)
-        self.text = []
+        self.text: list[dict[str, Any]] = []
 
-    def detect_text(self, image_path):
+    def detect_text(self, image_path: str) -> list[tuple[list[list[int]], str, float]]:
         """
         Detect text in the image at the specified path.
 
@@ -22,7 +23,9 @@ class EasyOCR:
 
         return results
 
-    def draw_boxes(self, image_path, results):
+    def draw_boxes(
+        self, image_path: str, results: list[tuple[list[list[int]], str, float]]
+    ) -> list[dict[str, Any]]:
         # Load the image with OpenCV for drawing rectangles
         cv_image = cv2.imread(image_path)
 
@@ -52,7 +55,7 @@ class EasyOCR:
         print("\nText detection result saved to output/text_detection_result.jpg")
         return self.text
 
-    def process_image(self, image_path):
+    def process_image(self, image_path: str) -> list[dict[str, Any]]:
         """
         Process the image to detect and draw text boxes.
 

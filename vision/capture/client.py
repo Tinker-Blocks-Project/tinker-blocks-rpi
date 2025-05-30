@@ -3,8 +3,10 @@ import os
 
 
 def capture_image_client(
-    pi_ip="192.168.1.18", save_dir="assets", save_name="downloaded_image.jpg"
-):
+    pi_ip: str = "192.168.1.18",
+    save_dir: str = "assets",
+    save_name: str = "downloaded_image.jpg",
+) -> str | None:
     """
     Sends a request to the Raspberry Pi server to capture an image
     and saves it in the specified local assets folder.
