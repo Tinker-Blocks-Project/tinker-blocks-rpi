@@ -19,6 +19,11 @@ pytesseract = "^0.3.10"
 flask = "^3.0.0"
 depthai = "^2.24.0"
 
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.0"
+pytest-asyncio = "^0.21.0"
+ruff = "^0.5.0"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"

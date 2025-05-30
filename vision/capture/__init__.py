@@ -1,5 +1,3 @@
-"""Camera capture components."""
-
 from .client import capture_image_client
 from .local import capture_image
 

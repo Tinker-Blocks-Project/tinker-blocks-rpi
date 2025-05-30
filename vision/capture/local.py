@@ -1,10 +1,8 @@
-#!/usr/bin/env python3
-
-
 import cv2
 import depthai as dai
 import time
 import os
+
 
 def capture_image():
     # Create pipeline
@@ -30,7 +28,7 @@ def capture_image():
 
     # Connect to device and start pipeline
     with dai.Device(pipeline) as device:
-        video = device.getOutputQueue(name="video", maxSize=1, blocking=False)
+        video = device.getOutputQueue(name="video", maxSize=1, blocking=False)  # type: ignore
 
         print("Warming up camera for 2 seconds...")
         time.sleep(2)  # let autofocus & white balance settle
@@ -41,7 +39,6 @@ def capture_image():
 
         # Now capture and save the image
         for i in range(1):
-
             videoIn = video.get()
             frame = videoIn.getCvFrame()
             filename = os.path.join("assets", f"frame_05{i}.jpg")

@@ -39,35 +39,36 @@ The project follows a clean architecture with proper dependency inversion:
 
 ### ProcessController System
 
-The application uses a class-based task execution system:
+The application uses a simple workflow-based execution system:
 
 ```python
-# Define individual tasks
-tasks = [
-    Task(name="Capture Image", func=capture_image_task, args=(send_message,)),
-    Task(name="Process Image", func=process_image_task, args=(send_message,)),
-    Task(name="Run OCR", func=run_ocr_task, args=(send_message,)),
-]
+# Define a workflow function
+async def my_workflow(send_message, check_cancelled):
+    await send_message("Starting workflow...")
+    
+    # Check cancellation at key points
+    if check_cancelled():
+        return
+        
+    # Do work...
+    await send_message("Workflow complete!")
 
-# Execute tasks with the controller
-controller = ProcessController(send_message)
-await controller.run_tasks(tasks)
-
-# Cancel if needed
-controller.cancel()
+# Execute the workflow
+controller = ProcessController(broadcast)
+await controller.run_workflow(my_workflow, "My Workflow")
 ```
 
 Key features:
-- **Sequential Execution**: Tasks run one after another
-- **Cancellation Support**: Can cancel between tasks or during task execution
-- **Status Updates**: Each task reports progress
-- **Error Handling**: Graceful failure with detailed error messages
+- **Simple Workflows**: Single function contains entire workflow logic
+- **Cancellation Points**: Check for cancellation where it makes sense
+- **Clear Progress**: Send messages to update status
+- **Easy to Write**: No complex task composition needed
 
 This design ensures:
-- Core modules remain independent
-- Easy composition of task workflows
-- Clear separation of command handling and task execution
-- Support for different workflows without modifying core
+- Minimal complexity - just async functions
+- Natural flow - write code as you normally would
+- Flexible cancellation - check where appropriate
+- Easy debugging - all logic in one place
 
 ## 📁 Project Structure
 

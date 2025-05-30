@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 from flask import Flask, jsonify, send_file
 import cv2
 import depthai as dai
@@ -9,6 +7,7 @@ import os
 app = Flask(__name__)
 SAVE_DIR = "assets"
 os.makedirs(SAVE_DIR, exist_ok=True)
+
 
 def capture_image():
     pipeline = dai.Pipeline()
@@ -27,7 +26,7 @@ def capture_image():
     camRgb.video.link(xoutVideo.input)
 
     with dai.Device(pipeline) as device:
-        video = device.getOutputQueue(name="video", maxSize=1, blocking=False)
+        video = device.getOutputQueue(name="video", maxSize=1, blocking=False)  # type: ignore
         time.sleep(2)
 
         for _ in range(10):
@@ -40,13 +39,15 @@ def capture_image():
         cv2.imwrite(filename, frame)
         return filename
 
-@app.route('/capture', methods=['GET'])
+
+@app.route("/capture", methods=["GET"])
 def capture():
     try:
         img_path = capture_image()
-        return send_file(img_path, mimetype='image/jpeg')
+        return send_file(img_path, mimetype="image/jpeg")
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)

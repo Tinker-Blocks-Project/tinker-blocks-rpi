@@ -13,15 +13,18 @@ def set_command_processor(processor: Callable[[str, dict], Awaitable[None]]):
 
 
 async def broadcast(message: str):
-    for client in connected_clients.copy():
+    """Broadcast a message to all connected clients."""
+    # Create list copy to avoid modification during iteration
+    for client in list(connected_clients):
         try:
             await client.send(json.dumps({"message": message}))
         except Exception as e:
             print(f"Error sending message to client: {e}")
-            connected_clients.remove(client)
+            connected_clients.discard(client)
 
 
 async def handler(websocket):
+    """Handle WebSocket connections."""
     print("✅ Client connected")
     connected_clients.add(websocket)
     try:
@@ -44,9 +47,10 @@ async def handler(websocket):
     except websockets.exceptions.ConnectionClosed:
         print("Client disconnected")
     finally:
-        connected_clients.remove(websocket)
+        connected_clients.discard(websocket)
 
 
 def start_ws_server():
+    """Start the WebSocket server."""
     print("🧩 WebSocket server running on ws://0.0.0.0:8765")
     return websockets.serve(handler, "0.0.0.0", 8765)

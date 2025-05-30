@@ -1,5 +1,3 @@
-# easyocr_server.py
-
 from flask import Flask, request, jsonify
 from vision.ocr.wrapper import EasyOCR
 import os

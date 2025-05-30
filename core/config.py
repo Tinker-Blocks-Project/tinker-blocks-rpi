@@ -1,5 +1,3 @@
-"""Configuration settings for the TinkerBlocks RPI application."""
-
 from pydantic import BaseModel
 
 
