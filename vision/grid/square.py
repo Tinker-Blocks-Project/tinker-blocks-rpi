@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, ConfigDict
-from image_processing.image import Image
+from vision.image import Image
 
 
 class GridSquare(BaseModel):

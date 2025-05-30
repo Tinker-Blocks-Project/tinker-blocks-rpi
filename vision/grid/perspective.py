@@ -3,8 +3,8 @@ import numpy as np
 from typing import Any, cast
 from numpy.typing import NDArray
 from pydantic import BaseModel, Field, ConfigDict
-from image_processing.grid.grid_square import GridSquare
-from image_processing.image import Image
+from vision.grid.square import GridSquare
+from vision.image import Image
 
 
 class PerspectiveGrid(BaseModel):

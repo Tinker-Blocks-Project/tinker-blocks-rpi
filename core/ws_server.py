@@ -1,17 +1,25 @@
-# ws_server.py
-import asyncio
 import json
 import websockets
-from process_controller import start_process, stop_process, register_send_func, get_current_task
+from typing import Callable, Awaitable, Optional
 
 connected_clients = set()
+_command_processor: Optional[Callable[[str, dict], Awaitable[None]]] = None
+
+
+def set_command_processor(processor: Callable[[str, dict], Awaitable[None]]):
+    """Set the command processor function."""
+    global _command_processor
+    _command_processor = processor
+
 
 async def broadcast(message: str):
     for client in connected_clients.copy():
         try:
             await client.send(json.dumps({"message": message}))
-        except:
+        except Exception as e:
+            print(f"Error sending message to client: {e}")
             connected_clients.remove(client)
+
 
 async def handler(websocket):
     print("✅ Client connected")
@@ -21,13 +29,16 @@ async def handler(websocket):
             print(f"Received: {message}")
             try:
                 data = json.loads(message)
-                if data.get("command") == "run":
-                    if get_current_task() and not get_current_task().done():
-                        await broadcast("Process already running")
-                    else:
-                        await start_process()
-                elif data.get("command") == "stop":
-                    await stop_process()
+                command = data.get("command")
+
+                if command and _command_processor:
+                    # Process command through the registered processor
+                    await _command_processor(command, data)
+                else:
+                    await websocket.send(
+                        json.dumps({"error": "No command processor registered"})
+                    )
+
             except json.JSONDecodeError:
                 await websocket.send(json.dumps({"error": "Invalid JSON"}))
     except websockets.exceptions.ConnectionClosed:
@@ -35,7 +46,7 @@ async def handler(websocket):
     finally:
         connected_clients.remove(websocket)
 
+
 def start_ws_server():
-    register_send_func(broadcast)
     print("🧩 WebSocket server running on ws://0.0.0.0:8765")
     return websockets.serve(handler, "0.0.0.0", 8765)
