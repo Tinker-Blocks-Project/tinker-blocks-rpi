@@ -188,19 +188,75 @@ For detailed information about each module:
 
 ## 🎮 Command Reference
 
-Built-in commands recognized by the engine:
-- **Movement**: `FORWARD`, `FWD`, `MOVE_FORWARD`
-- **Rotation**: `RIGHT`, `LEFT`, `TURN_RIGHT`, `TURN_LEFT`
+The engine supports a comprehensive set of commands for programming:
 
-Commands are case-insensitive and support aliases.
+### Movement Commands
+- **`MOVE`** - Move forward 1 unit (default) or specified distance
+  - `MOVE` → Move 1 unit forward
+  - `MOVE | 5` → Move 5 units forward
+  - `MOVE | -3` → Move 3 units backward
+  - `MOVE | WHILE | condition` → Move while condition is true
+
+### Rotation Commands
+- **`TURN`** - Rotate the car (requires LEFT, RIGHT, or degrees)
+  - `TURN | LEFT` → Turn 90° left
+  - `TURN | RIGHT` → Turn 90° right
+  - `TURN | 45` → Turn 45° right (positive = right, negative = left)
+  - `TURN | LEFT | 30` → Turn left by 30°
+  - `TURN | RIGHT | 45` → Turn right by 45°
+  - `TURN | LEFT | WHILE | condition` → Turn left while condition is true
+
+### Control Flow
+- **`LOOP`** - Repeat nested commands
+  - `LOOP | 5` → Repeat 5 times
+  - `LOOP | TRUE` → Infinite loop (until max steps)
+  - `LOOP | FALSE` → No execution
+  - `LOOP | WHILE | condition` → Loop while condition is true
+  
+- **`IF`** - Conditional execution
+  - `IF | condition` → Execute nested commands if true
+  - Can be followed by `ELSE` block for false case
+
+### Variables
+- **`SET`** - Assign values to variables
+  - `SET | X | 5` → Set X to 5
+  - `SET | Y | X | + | 3` → Set Y to X + 3
+  - `SET | FLAG | TRUE` → Set boolean variable
+  - `SET | COUNTER | 0` → Variable names can be any alphabetic string
+
+### Drawing
+- **`PEN_DOWN`** - Start drawing path
+- **`PEN_UP`** - Stop drawing path
+
+### Utility
+- **`WAIT`** - Pause execution
+  - `WAIT | 2` → Wait 2 seconds
+  - `WAIT | 0.5` → Wait 0.5 seconds
+  - `WAIT | WHILE | condition` → Wait while condition is true
+
+### Values and Expressions
+- **Numbers**: `5`, `3.14`, `-2`
+- **Booleans**: `TRUE`, `FALSE`
+- **Variables**: Any alphabetic string (e.g., `X`, `COUNT`, `DISTANCE_VAR`)
+- **Sensors**: `DISTANCE`, `OBSTACLE`, `BLACK_DETECTED`, `BLACK_LOST`
+- **Operators**: `+`, `-`, `*`, `/`, `<`, `>`, `=`, `!=`, `AND`, `OR`, `NOT`
+
+### Grid Layout
+Commands are arranged on a 16x10 grid:
+- Read left-to-right, top-to-bottom
+- Arguments separated by `|` in cells
+- Indentation (column > 0) creates nested blocks for loops/conditions
 
 ## 🔮 Future Enhancements
 
-- **Advanced Commands**: Loops, conditionals, variables
 - **Visual Output**: Real-time execution visualization
 - **Block Designer**: Tool for creating custom blocks
-- **Multi-grid Support**: Connect multiple grids
+- **Multi-grid Support**: Connect multiple grids for larger programs
 - **Web Interface**: Browser-based control panel
+- **Hardware Integration**: Direct GPIO control for motors and sensors
+- **Program Storage**: Save and load programs
+- **Debugging Tools**: Step-through execution, breakpoints
+- **Extended Math**: More mathematical operations and functions
 
 ## 📝 License
 

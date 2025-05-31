@@ -91,9 +91,13 @@ async def test_engine_workflow_execution():
 
     # Sample grid
     test_grid = [
-        ["FORWARD", "FORWARD", "RIGHT"],
-        ["FORWARD", "LEFT", "FORWARD"],
-        ["", "FORWARD", ""],
+        ["MOVE"],
+        ["MOVE"],
+        ["TURN", "RIGHT"],
+        ["MOVE"],
+        ["TURN", "LEFT"],
+        ["MOVE"],
+        ["MOVE"],
     ]
 
     # Run workflow
@@ -112,9 +116,15 @@ async def test_engine_workflow_execution():
     # Verify final state
     final_state = result["final_state"]
     assert final_state["steps_executed"] == 7
-    assert final_state["position"]["x"] == 4
-    assert final_state["position"]["y"] == 1
-    assert final_state["direction"] == "right"
+    # Fixed expectations based on correct execution:
+    # MOVE, MOVE (now at 0,2 facing forward)
+    # TURN RIGHT (now at 0,2 facing right)
+    # MOVE (now at 1,2 facing right)
+    # TURN LEFT (now at 1,2 facing forward)
+    # MOVE, MOVE (now at 1,4 facing forward)
+    assert final_state["position"]["x"] == 1.0
+    assert final_state["position"]["y"] == 4.0
+    assert final_state["direction"] == "forward"
 
     # Verify execution messages
     assert any("Starting engine workflow" in msg for msg in messages)
@@ -134,8 +144,10 @@ async def test_full_pipeline_workflow():
 
     # Mock OCR workflow to return a grid
     mock_grid = [
-        ["FORWARD", "RIGHT"],
-        ["LEFT", "FORWARD"],
+        ["MOVE"],
+        ["TURN", "RIGHT"],
+        ["TURN", "LEFT"],
+        ["MOVE"],
     ]
 
     with patch("vision.workflow.ocr_grid_workflow") as mock_ocr:

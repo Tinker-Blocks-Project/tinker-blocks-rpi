@@ -29,7 +29,7 @@ async def test_engine_with_no_grid():
     assert success is True
     assert result is not None
     assert result["success"] is False
-    assert result["error"] == "No grid data"
+    assert result["error"] == "No grid data provided"
     assert any("No grid data provided" in msg for msg in messages)
 
 
@@ -58,15 +58,10 @@ async def test_engine_with_invalid_commands():
 
     assert success is True
     assert result is not None
-    assert result["success"] is True
+    assert result["success"] is False  # Should fail with unknown commands
 
-    # Should have warnings about unknown commands
-    assert any("Unknown command: INVALID_CMD" in msg for msg in messages)
-    assert any("Unknown command: UNKNOWN" in msg for msg in messages)
-    assert any("Unknown command: NOT_A_COMMAND" in msg for msg in messages)
-
-    # Valid commands should still execute
-    assert result["final_state"]["steps_executed"] == 3  # FORWARD, RIGHT, LEFT
+    # Should have error about unknown command
+    assert "Unknown command" in result["error"]
 
 
 @pytest.mark.asyncio
@@ -209,13 +204,13 @@ async def test_empty_and_edge_case_grids():
         # Empty grid
         ([[], []], "Empty rows"),
         # Single cell
-        ([["FORWARD"]], "Single cell"),
+        ([["MOVE"]], "Single cell"),
         # Only empty strings
         ([["", ""], ["", ""]], "All empty cells"),
         # Mixed valid/empty
-        ([["FORWARD", ""], ["", "RIGHT"]], "Mixed cells"),
+        ([["MOVE", ""], ["", ""], ["TURN", "RIGHT"]], "Mixed cells"),
         # Very large grid (performance test)
-        ([["FORWARD"] * 50 for _ in range(50)], "Large grid"),
+        ([["MOVE"] for _ in range(50)], "Large grid"),
     ]
 
     for grid, description in test_grids:
@@ -230,10 +225,18 @@ async def test_empty_and_edge_case_grids():
 
         assert success is True
         assert result is not None
-        assert result["success"] is True
 
-        # Verify appropriate execution
-        if description == "Large grid":
-            assert result["final_state"]["steps_executed"] == 2500
-        elif description == "Single cell":
-            assert result["final_state"]["steps_executed"] == 1
+        # Some grids might be empty or have parsing issues
+        if description == "Empty rows" or description == "All empty cells":
+            assert result["success"] is True
+            assert result["final_state"]["steps_executed"] == 0
+        else:
+            assert result["success"] is True
+
+            # Verify appropriate execution
+            if description == "Large grid":
+                assert result["final_state"]["steps_executed"] == 50
+            elif description == "Single cell":
+                assert result["final_state"]["steps_executed"] == 1
+            elif description == "Mixed cells":
+                assert result["final_state"]["steps_executed"] == 2

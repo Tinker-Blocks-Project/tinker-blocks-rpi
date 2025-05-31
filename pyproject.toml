@@ -25,8 +25,15 @@ pytest-asyncio = "^0.21.0"
 ruff = "^0.5.0"
 
 [tool.pytest.ini_options]
-testpaths = ["src"]
-pythonpath = ["src"]
+minversion = "6.0"
+testpaths = ["src/tests", "src/core/tests", "src/vision/tests", "src/engine/tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-ra --strict-markers --strict-config"
+markers = [
+    "asyncio: mark test as an async test",
+]
 
 [build-system]
 requires = ["poetry-core"]

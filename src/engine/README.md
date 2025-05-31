@@ -1,166 +1,388 @@
 # Engine Module
 
-The engine module implements an interpreter pattern for executing commands from the grid of programming blocks. It processes the 2D array of commands produced by the vision module and simulates their execution.
+## Overview
 
-## 📁 Module Structure
+The Engine module processes a 2D grid of programming blocks to control a robotic car. The system reads blocks left-to-right, top-to-bottom, with indentation-based block structure similar to Python.
 
+## Architecture
+
+The engine follows the interpreter pattern with these main components:
+
+- **Parser**: Converts 2D grid into command tree with proper nesting
+- **Commands**: Each command type handles its own execution logic
+- **Values**: Type system for numbers, variables, expressions, and sensors
+- **Context**: Tracks execution state (position, direction, variables, pen)
+- **Executor**: Runs command tree with cancellation and step limiting
+
+## Grid Interpretation Rules
+
+### 1. Reading Order
+- **Horizontal**: Left-to-right within each row
+- **Vertical**: Top-to-bottom through rows
+- **Grid Size**: Flexible dimensions
+
+### 2. Indentation Rules
+- **Base Level**: Commands starting at column 0
+- **Nested Level**: Commands indented by starting in column > 0
+- **Block Structure**: Indentation defines scope (no END statements needed)
+- **ELSE Special Case**: ELSE at same indentation as IF is part of the IF block
+
+### 3. Command Structure
+Each row contains one command with its arguments:
 ```
-engine/
-├── __init__.py         # Module exports
-├── commands.py         # Command definitions and registry
-├── state.py            # Execution state management
-├── interpreter.py      # Main interpreter implementation
-└── workflow.py         # Engine workflow integration
+COMMAND | arg1 | arg2 | arg3 | ...
 ```
+Arguments are collected from subsequent cells until another command is found.
 
-## 🔧 Key Components
+## Command Reference
 
-### Command System (`commands.py`)
+### Movement Commands
 
-The engine uses an extensible command system with:
-- **Command Protocol**: Interface for all executable commands
-- **Built-in Commands**:
-  - `MoveForwardCommand`: Move in current direction
-  - `TurnRightCommand`: Turn 90° clockwise
-  - `TurnLeftCommand`: Turn 90° counter-clockwise
-- **CommandRegistry**: Maps command names to implementations with aliases
+#### MOVE
+Moves the car forward or backward.
 
-Example command implementation:
-```python
-class MoveForwardCommand:
-    name = "MOVE_FORWARD"
-    
-    def execute(self, state: ExecutionState) -> None:
-        directions = {
-            "right": (1, 0),
-            "down": (0, 1),
-            "left": (-1, 0),
-            "up": (0, -1),
-        }
-        dx, dy = directions[state.direction]
-        state.move(dx, dy)
+**Syntax**: 
+- `MOVE` - Move forward 1 unit
+- `MOVE | distance` - Move specified distance (negative for backward)
+- `MOVE | WHILE | condition` - Move while condition is true
+
+**Examples**:
 ```
-
-### Execution State (`state.py`)
-
-Manages the interpreter's state during execution:
-- **Position**: Current (x, y) coordinates
-- **Direction**: Current facing (right, down, left, up)
-- **Variables**: Storage for future variable support
-- **Output**: History of executed steps
-- **Steps Count**: Total commands executed
-
-```python
-@dataclass
-class ExecutionState:
-    position: Position
-    direction: str = "right"
-    variables: Dict[str, Any]
-    output: List[ExecutionStep]
-    steps_executed: int
+MOVE                    # Move forward 1 unit
+MOVE | 5               # Move forward 5 units
+MOVE | -3              # Move backward 3 units  
+MOVE | X               # Move forward X units (variable)
+MOVE | WHILE | X < 10  # Move while X is less than 10
 ```
 
-### Interpreter (`interpreter.py`)
+#### TURN  
+Rotates the car.
 
-The main interpreter that processes command grids:
-- Executes commands sequentially from the grid
-- Supports async callbacks for progress updates
-- Handles cancellation gracefully
-- Records execution history
+**Syntax**:
+- `TURN | direction` - Turn 90° in direction (LEFT or RIGHT)
+- `TURN | degrees` - Turn right by specified degrees
+- `TURN | direction | degrees` - Turn in direction by degrees
+- `TURN | direction | WHILE | condition` - Turn while condition is true
 
-```python
-interpreter = Interpreter()
-final_state = await interpreter.execute_grid(
-    grid,
-    on_command=lambda r, c, cmd: print(f"Executing {cmd} at [{r},{c}]"),
-    on_unknown_command=lambda cmd: print(f"Unknown: {cmd}")
-)
+**Examples**:
+```
+TURN | LEFT                      # Turn left 90°
+TURN | RIGHT                     # Turn right 90°
+TURN | 45                        # Turn right 45°
+TURN | LEFT | 30                 # Turn left 30°
+TURN | RIGHT | WHILE | X < 5     # Turn right while X < 5
 ```
 
-### Engine Workflow (`workflow.py`)
+### Control Flow Commands
 
-Integration with the ProcessController system:
-- Accepts grid data from vision workflow or parameters
-- Provides real-time status updates via WebSocket
-- Returns execution results in structured format
+#### LOOP
+Repeats a block of commands.
 
-## 🎮 Command Aliases
+**Syntax**:
+- `LOOP | count` - Loop specified number of times
+- `LOOP | TRUE` - Loop forever (until max steps)
+- `LOOP | FALSE` - Don't execute loop body
+- `LOOP | WHILE | condition` - Loop while condition is true
 
-The engine recognizes multiple variations of commands:
-- **Forward Movement**: `MOVE_FORWARD`, `FORWARD`, `FWD`
-- **Turn Right**: `TURN_RIGHT`, `RIGHT`
-- **Turn Left**: `TURN_LEFT`, `LEFT`
-
-## 🔄 Execution Flow
-
-1. **Initialize**: Create interpreter with empty state
-2. **Process Grid**: Iterate through each cell row by row
-3. **Execute Commands**: Look up and execute each command
-4. **Update State**: Track position, direction, and history
-5. **Return Results**: Final state with execution summary
-
-## 📊 Example Execution
-
-Given this grid:
+**Examples**:
 ```
-[["FORWARD", "FORWARD", "RIGHT",  ""],
- ["FORWARD", "LEFT",    "FORWARD", ""],
- ["",        "FORWARD", "RIGHT",   "FWD"],
- ["",        "",        "FORWARD", ""]]
+LOOP | 5
+    MOVE | 2
+    TURN | RIGHT
+
+LOOP | TRUE
+    MOVE | 1
+    IF | OBSTACLE
+        TURN | RIGHT
+
+LOOP | WHILE | X < 10
+    MOVE | 1
+    SET | X | X + 1
 ```
 
-The interpreter will:
-1. Start at (0, 0) facing right
-2. Execute commands sequentially
-3. End at position (4, 3) facing down
-4. Record 10 total steps
+#### IF / ELSE
+Conditional execution.
 
-## 🔗 Integration with Vision
+**Syntax**: 
+- `IF | condition` - Execute if condition is true
+- `ELSE` - Execute if previous IF was false
 
-The engine workflow can be chained with vision:
+**Examples**:
+```
+IF | OBSTACLE
+    TURN | RIGHT
+    MOVE | 2
+ELSE
+    MOVE | 5
 
-```python
-# Run OCR first, then engine
-{"command": "run", "params": {"workflow": "full"}}
+IF | X > 10
+    SET | Y | 0
 
-# Run OCR with automatic chaining
-{"command": "run", "params": {"workflow": "ocr_grid", "chain_engine": true}}
-
-# Run engine with provided grid
-{"command": "run", "params": {"workflow": "engine", "grid": [["FWD", "RIGHT"], ...]}}
+IF | DISTANCE < 30 AND BLACK_DETECTED
+    TURN | LEFT
 ```
 
-## 🚀 Extending the Engine
+### Variable Commands
 
-To add new commands:
+#### SET
+Assigns values to variables.
 
-1. Create a command class implementing the protocol:
-```python
-class JumpCommand:
-    name = "JUMP"
-    
-    def execute(self, state: ExecutionState) -> None:
-        # Jump forward 2 spaces
-        dx, dy = get_direction_delta(state.direction)
-        state.move(dx * 2, dy * 2)
+**Syntax**: `SET | variable | value/expression`
+
+**Parameters**:
+- `variable`: Any alphabetic string (X, Y, COUNT, SPEED, etc.)
+- `value/expression`: Number, sensor, or arithmetic expression
+
+**Examples**:
+```
+SET | X | 5
+SET | SPEED | 10
+SET | Y | DISTANCE
+SET | Z | X + 2
+SET | COUNT | COUNT + 1
+SET | FOUND | DISTANCE < 30
 ```
 
-2. Register it in the CommandRegistry:
-```python
-registry = CommandRegistry()
-registry.register(JumpCommand())
-registry.register_alias("JP", registry.get("JUMP"))
+### Drawing Commands
+
+#### PEN_DOWN / PEN_UP
+Controls drawing.
+
+**Syntax**: `PEN_DOWN` or `PEN_UP`
+
+**Example**:
+```
+PEN_DOWN
+LOOP | 4
+    MOVE | 3
+    TURN | RIGHT
+PEN_UP
 ```
 
-## 🧪 Testing
+### Utility Commands
 
-See `scripts/test_engine_workflow.py` for a standalone test that demonstrates the engine processing a sample grid.
+#### WAIT
+Pauses execution.
 
-## 🔮 Future Enhancements
+**Syntax**:
+- `WAIT | seconds` - Wait for specified time
+- `WAIT | WHILE | condition` - Wait while condition is true
 
-- **Conditional Commands**: IF/ELSE blocks
-- **Loop Commands**: FOR/WHILE loops
-- **Variable Support**: Store and use values
-- **Function Definitions**: Reusable command sequences
-- **Visual Output**: Generate movement visualization
-- **Error Recovery**: Handle invalid command sequences 
+**Examples**:
+```
+WAIT | 2                        # Wait 2 seconds
+WAIT | 0.5                      # Wait half second
+WAIT | WHILE | DISTANCE < 20    # Wait while too close
+```
+
+## Value Types
+
+### Numbers
+- **Integers**: 1, 5, 10, 45, 90, 180
+- **Decimals**: 1.5, 2.7, 0.5
+- **Negative**: -1, -5, -10
+
+### Boolean Values
+- **TRUE**: Boolean true value
+- **FALSE**: Boolean false value
+
+### Variables
+- **Names**: Any alphabetic string (X, Y, SPEED, COUNT, etc.)
+- **Types**: Store numeric or boolean values
+- **Scope**: Global within execution
+
+### Directions
+- **LEFT**: Turn/direction indicator
+- **RIGHT**: Turn/direction indicator
+- **FORWARD**: Direction facing (0°)
+- **BACKWARD**: Direction facing (180°)
+
+### Sensor Values
+- **DISTANCE**: Ultrasonic sensor reading in cm
+- **OBSTACLE**: True if distance < 30cm
+- **BLACK_DETECTED**: True if IR sensor detects black
+- **BLACK_LOST**: Inverse of BLACK_DETECTED
+
+## Operators
+
+### Arithmetic Operators
+- **+**: Addition
+- **-**: Subtraction
+- **\***: Multiplication
+- **/**: Division
+
+### Comparison Operators
+- **<**: Less than
+- **>**: Greater than  
+- **<=**: Less than or equal
+- **>=**: Greater than or equal
+- **==**: Equal to
+- **!=**: Not equal to
+
+### Logical Operators
+- **AND**: Both conditions must be true
+- **OR**: Either condition must be true
+- **NOT**: Inverts the condition
+
+## Expression Evaluation
+
+Expressions are evaluated left-to-right with these rules:
+- No operator precedence (use parentheses if needed)
+- Variables resolved to their current values
+- Sensors polled when referenced
+- Boolean results from comparisons can be stored
+
+**Examples**:
+```
+X + 5                    # Add 5 to X
+DISTANCE < 30            # Compare distance to 30
+X > 5 AND Y < 10        # Logical AND of two comparisons
+NOT OBSTACLE            # Invert obstacle detection
+COUNT + 1               # Increment expression
+```
+
+## Execution Model
+
+### Context State
+The execution context tracks:
+- **Position**: (x, y) coordinates
+- **Direction**: Current facing (forward, right, backward, left)
+- **Variables**: User-defined variable values
+- **Pen State**: Up or down for drawing
+- **Path**: Drawing path when pen is down
+- **Step Count**: Number of commands executed
+
+### Step Limiting
+- Default limit: 1000 steps
+- Prevents infinite loops
+- Each command counts as one step
+- Error raised when limit exceeded
+
+### Sensor Interface
+Sensors are polled in real-time:
+- **get_distance()**: Returns numeric distance in cm
+- **is_black_detected()**: Returns boolean for line detection
+- Mock implementation available for testing
+
+## Example Programs
+
+### Drawing a Square
+```
+SET | SIDE | 3
+PEN_DOWN
+LOOP | 4
+    MOVE | SIDE
+    TURN | RIGHT
+PEN_UP
+```
+
+### Obstacle Avoidance
+```
+LOOP | TRUE
+    IF | OBSTACLE
+        TURN | RIGHT
+        MOVE | 2
+        TURN | LEFT
+    ELSE
+        MOVE | 1
+```
+
+### Line Following
+```
+LOOP | TRUE
+    IF | BLACK_DETECTED
+        MOVE | 1
+    ELSE
+        TURN | LEFT | WHILE | NOT BLACK_DETECTED
+```
+
+### Variable Counter
+```
+SET | COUNT | 0
+LOOP | WHILE | COUNT < 10
+    MOVE | 1
+    TURN | RIGHT
+    SET | COUNT | COUNT + 1
+```
+
+### Spiral Pattern
+```
+SET | DISTANCE | 1
+LOOP | 10
+    MOVE | DISTANCE
+    TURN | RIGHT
+    SET | DISTANCE | DISTANCE + 0.5
+```
+
+### Sensor-Based Navigation
+```
+LOOP | TRUE
+    MOVE | WHILE | DISTANCE > 30
+    IF | DISTANCE < 10
+        MOVE | -2
+        TURN | 180
+    ELSE
+        TURN | RIGHT
+```
+
+## Error Handling
+
+### Parse Errors
+- Unknown command
+- Invalid arguments
+- ELSE without IF
+- Malformed expressions
+
+### Runtime Errors
+- Maximum steps exceeded
+- Division by zero
+- Invalid sensor readings
+- Variable not defined
+
+### Recovery
+- Execution stops on error
+- Final state returned with error message
+- Grid position included in error
+
+## Implementation Details
+
+### Command Registry
+- Commands self-register on import
+- Each command validates its own arguments
+- Factory pattern for command creation
+
+### Parser Algorithm
+1. Process grid row by row
+2. Track indentation with stack
+3. Handle ELSE as special case
+4. Build nested command structure
+
+### Value System
+- Base Value class with evaluate protocol
+- Concrete types: Number, Variable, Sensor, Direction, Boolean
+- Expression class for compound evaluations
+- Type coercion in operators
+
+### Async Execution
+- Commands execute asynchronously
+- Cancellation callback checked between steps
+- Message callback for progress updates
+
+## Testing
+
+The engine includes comprehensive end-to-end tests covering:
+- Basic movement and turning
+- Loops with various conditions
+- IF/ELSE branching
+- Variable operations
+- Expression evaluation
+- Sensor integration
+- Drawing commands
+- Error conditions
+- Complex programs
+
+Run tests with:
+```bash
+cd src/engine
+python -m pytest tests/test_engine_e2e.py -v
+```
