@@ -2,248 +2,210 @@
 
 ## Overview
 
-TinkerBlocks RPI is a computer vision system designed to recognize and digitize physical programming blocks arranged on a grid. The system uses a camera (potentially on a Raspberry Pi) to capture images of physical blocks, performs Optical Character Recognition (OCR) to read text on the blocks, and maps them to a 16x10 grid structure.
+TinkerBlocks RPI is a computer vision system that recognizes physical programming blocks and executes them using an interpreter pattern. The system captures images of blocks arranged on a grid, performs OCR to read commands, maps them to a 16x10 grid, and executes the resulting program.
 
 ## 🎯 Purpose
 
-This project appears to be part of a visual programming education system where users can arrange physical blocks on a surface, and the system will:
-1. Capture an image of the arranged blocks
-2. Detect and read text/numbers on each block using OCR
-3. Map the blocks to their positions in a predefined grid
-4. Process the arrangement (potentially for code interpretation)
+An educational tool for teaching programming concepts through physical blocks:
+1. **Capture**: Camera captures image of arranged blocks
+2. **Recognize**: OCR extracts text/commands from blocks
+3. **Map**: Commands are mapped to grid positions
+4. **Execute**: Interpreter runs the commands with visual feedback
 
 ## 🏗️ Architecture
 
-The project follows a clean architecture with proper dependency inversion:
+The project follows clean architecture with three main modules:
 
-### Core Components
+### [Core Module](src/core/README.md)
+Foundational infrastructure with zero dependencies:
+- WebSocket server for real-time communication
+- Process controller for workflow management
+- Centralized configuration
 
-1. **Core Module** (`core/`)
-   - **WebSocket Server** (`ws_server.py`): Handles real-time communication with command processor support
-   - **Process Controller** (`process_controller.py`): Class-based task execution with cancellation support
-   - **Configuration** (`config.py`): Centralized settings
-   - **No dependencies on other modules** - defines interfaces only
+### [Vision Module](src/vision/README.md)
+Computer vision and image processing:
+- Image capture and manipulation
+- Grid detection with perspective transformation
+- OCR processing to extract text
+- Mapping text to grid positions
 
-2. **Vision Module** (`vision/`)
-   - **Image Processing** (`image.py`): Image manipulation utilities
-   - **Camera Capture** (`capture/`): Camera interaction components
-   - **Grid Detection** (`grid/`): Perspective transformation and mapping
-   - **OCR Processing** (`ocr/`): Text recognition
-   - **Tasks** (`tasks.py`): Individual vision processing tasks
-
-3. **Main Application** (`main.py`)
-   - Handles command logic (run, stop, etc.)
-   - Composes vision tasks into workflows
-   - Registers command processor with WebSocket server
-   - Initializes the ProcessController
-
-### ProcessController System
-
-The application uses a simple workflow-based execution system:
-
-```python
-# Define a workflow function
-async def my_workflow(send_message, check_cancelled):
-    await send_message("Starting workflow...")
-    
-    # Check cancellation at key points
-    if check_cancelled():
-        return
-        
-    # Do work...
-    await send_message("Workflow complete!")
-
-# Execute the workflow
-controller = ProcessController(broadcast)
-await controller.run_workflow(my_workflow, "My Workflow")
-```
-
-Key features:
-- **Simple Workflows**: Single function contains entire workflow logic
-- **Cancellation Points**: Check for cancellation where it makes sense
-- **Clear Progress**: Send messages to update status
-- **Easy to Write**: No complex task composition needed
-
-This design ensures:
-- Minimal complexity - just async functions
-- Natural flow - write code as you normally would
-- Flexible cancellation - check where appropriate
-- Easy debugging - all logic in one place
+### [Engine Module](src/engine/README.md)
+Interpreter pattern implementation:
+- Command definitions and registry
+- Execution state management
+- Grid command interpretation
+- Extensible command system
 
 ## 📁 Project Structure
 
 ```
 tinker-blocks-rpi/
-├── core/                      # Core application logic
-│   ├── __init__.py
-│   ├── ws_server.py          # WebSocket server implementation
-│   ├── process_controller.py # Process workflow controller
-│   └── config.py             # Centralized configuration
-├── vision/                    # Computer vision and image processing
-│   ├── __init__.py
-│   ├── image.py              # Image manipulation utilities
-│   ├── capture/              # Camera capture modules
-│   │   ├── __init__.py
-│   │   ├── client.py         # Remote camera client
-│   │   ├── server.py         # Camera server for Raspberry Pi
-│   │   └── local.py          # Local camera capture
-│   ├── grid/                 # Grid detection and mapping
-│   │   ├── __init__.py
-│   │   ├── perspective.py    # Perspective transformation
-│   │   ├── square.py         # Grid square representation
-│   │   └── mapper.py         # OCR to grid mapping (OCR2Grid)
-│   └── ocr/                  # OCR processing
-│       ├── __init__.py
-│       ├── wrapper.py        # EasyOCR wrapper
-│       ├── client.py         # OCR client
-│       └── server.py         # OCR server
-├── scripts/                   # Standalone scripts and utilities
-│   ├── test_ocr.py           # PyTesseract OCR testing
-│   └── test_number_detection.py  # Number detection testing
-├── assets/                    # Image assets and captures
-├── output/                    # Processed output files
-├── main.py                    # Application entry point
-├── pyproject.toml            # Poetry configuration
-├── poetry.lock               # Locked dependencies
-└── README.md                 # This file
+├── src/                 # Source code
+│   ├── core/           # Core infrastructure
+│   │   ├── tests/      # Core module tests
+│   │   └── README.md   # Core documentation
+│   ├── vision/         # Computer vision
+│   │   ├── capture/    # Camera components
+│   │   ├── grid/       # Grid detection
+│   │   ├── ocr/        # OCR processing
+│   │   ├── tests/      # Vision module tests
+│   │   └── README.md   # Vision documentation
+│   ├── engine/         # Command interpreter
+│   │   ├── tests/      # Engine module tests
+│   │   └── README.md   # Engine documentation
+│   ├── tests/          # End-to-end and integration tests
+│   │   ├── test_e2e_workflows.py
+│   │   ├── test_integration_websocket.py
+│   │   ├── test_workflow_chaining.py
+│   │   ├── test_error_scenarios.py
+│   │   └── demo_*.py   # Demo scripts
+│   ├── main.py         # Application entry point
+│   └── conftest.py     # Pytest configuration
+├── assets/              # Image assets
+├── output/              # Generated outputs
+├── pyproject.toml       # Poetry configuration
+├── poetry.lock          # Locked dependencies
+├── .gitignore           # Git ignore rules
+└── README.md            # This file
 ```
-
-## 🛠️ Technologies Used
-
-- **Python 3.13+**
-- **OpenCV** - Computer vision and image processing
-- **NumPy** - Numerical computing
-- **Pydantic** - Data validation and settings management
-- **WebSockets** - Real-time communication
-- **Flask** - Web framework for camera and OCR servers
-- **Requests** - HTTP client library
-- **EasyOCR** - Primary OCR engine
-- **PyTesseract** - Alternative OCR engine
-- **Tabulate** - Grid visualization in terminal
-- **DepthAI** - OAK-D camera support
-- **asyncio** - Asynchronous programming
-- **Poetry** - Dependency management
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-
-1. Python 3.13 or higher
-2. Poetry package manager
-3. Access to a camera (local or remote Raspberry Pi)
+- Python 3.13+
+- Poetry package manager
+- Camera (local or remote Raspberry Pi)
 
 ### Installation
+```bash
+# Clone repository
+git clone [repository-url]
+cd tinker-blocks-rpi
 
-1. Clone the repository:
-   ```bash
-   git clone [repository-url]
-   cd tinker-blocks-rpi
-   ```
+# Install dependencies
+poetry install
 
-2. Install dependencies using Poetry:
-   ```bash
-   poetry install
-   ```
-
-3. Activate the virtual environment:
-   ```bash
-   poetry shell
-   ```
-
-### Configuration
-
-All configuration settings are now centralized in `core/config.py`. You can modify the following settings:
-
-- **Server IPs and Ports**: 
-  - WebSocket server: `websocket_host` and `websocket_port`
-  - Camera server: `camera_server_ip` and `camera_server_port`
-  - OCR server: `ocr_server_ip` and `ocr_server_port`
-
-- **Grid Detection**: 
-  - Corner points: `grid_corners` (currently hardcoded for specific setup)
-  - Grid dimensions: `grid_rows` and `grid_cols`
-
-- **Directories**:
-  - Output directory: `output_dir`
-  - Assets directory: `assets_dir`
-
-Example of updating configuration:
-```python
-from core.config import config
-
-# Update camera server IP
-config.camera_server_ip = "192.168.1.100"
+# Activate environment
+poetry shell
 ```
 
 ### Running the Application
-
-1. Start the WebSocket server:
-   ```bash
-   python main.py
-   ```
-
-2. The server will start on `ws://0.0.0.0:8765`
-
-3. Connect a WebSocket client and send commands:
-   - `{"command": "run"}` - Run the vision processing workflow
-   - `{"command": "stop"}` - Stop the current process
-
-## 🔄 Processing Workflow
-
-The vision processing workflow consists of these tasks:
-
-1. **Capture Image**: Get image from camera or use test image
-2. **Process Image**: Rotate 90 degrees and convert to grayscale
-3. **Create Grid**: Apply perspective transformation and detect grid
-4. **Run OCR**: Extract text from the image using EasyOCR
-5. **Map to Grid**: Map detected text to grid positions (16x10)
-
-Each task:
-- Can be cancelled between execution
-- Reports progress via WebSocket messages
-- Shares state with subsequent tasks
-- Handles errors gracefully
-
-## 🔧 Troubleshooting
-
-### Poetry Installation Issues
-
-If you encounter the error "No file/folder found for package tinker-blocks-rpi", this has been fixed by setting `package-mode = false` in `pyproject.toml`. The project is an application, not a distributable package.
-
-### Dependency Installation
-
-After updating dependencies, you may need to:
 ```bash
-poetry lock --no-update  # Update lock file with new dependencies
-poetry install           # Install all dependencies
+python src/main.py
 ```
 
-### System Dependencies
+The WebSocket server starts on `ws://0.0.0.0:8765`
 
-Some dependencies require system packages:
-- **PyTesseract**: Requires Tesseract OCR to be installed
-  - macOS: `brew install tesseract`
-  - Linux: `sudo apt-get install tesseract-ocr`
-- **DepthAI**: May require additional USB permissions on Linux
+### Available Workflows
 
-## 🎮 Use Cases
+Send JSON commands to the WebSocket server:
 
-- **Educational Programming**: Teaching programming concepts using physical blocks
-- **Visual Code Creation**: Creating programs by arranging physical blocks
-- **Interactive Learning**: Hands-on programming experience for students
-- **Block-based Programming**: Similar to Scratch but with physical blocks
+```json
+// Run complete pipeline (OCR → Engine)
+{"command": "run", "params": {"workflow": "full"}}
+
+// Run OCR only
+{"command": "run", "params": {"workflow": "ocr_grid"}}
+
+// Run OCR with automatic engine execution
+{"command": "run", "params": {"workflow": "ocr_grid", "chain_engine": true}}
+
+// Run engine with custom grid
+{"command": "run", "params": {"workflow": "engine", "grid": [["FWD", "RIGHT"], ...]}}
+
+// Stop current process
+{"command": "stop"}
+```
+
+## 🧪 Testing
+
+The project has comprehensive test coverage organized by module and test type:
+
+### Unit Tests
+Located within each module:
+- `src/core/tests/` - Core infrastructure tests
+- `src/vision/tests/` - Vision processing tests  
+- `src/engine/tests/` - Engine interpreter tests
+
+### End-to-End Tests
+Located in `src/tests/` directory:
+- `test_e2e_workflows.py` - Complete workflow execution tests
+- `test_integration_websocket.py` - WebSocket server integration
+- `test_workflow_chaining.py` - Workflow data passing and chaining
+- `test_error_scenarios.py` - Error handling and edge cases
+
+### Running Tests
+
+```bash
+# Run all tests
+poetry run pytest
+
+# Run with coverage
+poetry run pytest --cov=core --cov=vision --cov=engine --cov-report=html
+
+# Run specific test categories
+poetry run pytest src/core/tests/              # Core unit tests
+poetry run pytest src/vision/tests/            # Vision unit tests  
+poetry run pytest src/engine/tests/            # Engine unit tests
+poetry run pytest src/tests/                   # E2E and integration tests
+
+# Run specific test file
+poetry run pytest src/tests/test_e2e_workflows.py -v
+
+# Run tests matching pattern
+poetry run pytest -k "websocket" -v
+```
+
+### Demo Scripts
+The `src/tests/` directory also contains demo scripts:
+- `demo_engine_workflow.py` - Demonstrates engine execution with sample grid
+- `demo_param_handling.py` - Tests WebSocket parameter handling
+- Other utility scripts for manual testing
+
+## 🔧 Configuration
+
+Edit `core/config.py` for system settings:
+- Server IPs and ports
+- Grid dimensions and corners
+- Directory paths
+
+## 📚 Module Documentation
+
+For detailed information about each module:
+- **[Core Module Documentation](src/core/README.md)** - Infrastructure and architecture
+- **[Vision Module Documentation](src/vision/README.md)** - Image processing pipeline
+- **[Engine Module Documentation](src/engine/README.md)** - Command interpreter system
+
+## 🛠️ Key Technologies
+
+- **Python 3.13** - Core language
+- **OpenCV** - Computer vision
+- **EasyOCR** - Text recognition
+- **WebSockets** - Real-time communication
+- **asyncio** - Asynchronous programming
+- **Poetry** - Dependency management
+- **Pydantic** - Configuration validation
+
+## 🎮 Command Reference
+
+Built-in commands recognized by the engine:
+- **Movement**: `FORWARD`, `FWD`, `MOVE_FORWARD`
+- **Rotation**: `RIGHT`, `LEFT`, `TURN_RIGHT`, `TURN_LEFT`
+
+Commands are case-insensitive and support aliases.
 
 ## 🔮 Future Enhancements
 
-- **Block Interpreter**: Execute arranged blocks as programs
-- **Multiple Workflows**: Support different processing pipelines
-- **Real-time Feedback**: Live updates as blocks are arranged
-- **Block Types**: Support for different block categories (loops, conditions, etc.)
-- **Remote Control**: Web interface for system control
+- **Advanced Commands**: Loops, conditionals, variables
+- **Visual Output**: Real-time execution visualization
+- **Block Designer**: Tool for creating custom blocks
+- **Multi-grid Support**: Connect multiple grids
+- **Web Interface**: Browser-based control panel
 
-## 📝 Notes
+## 📝 License
 
-- The system uses hardcoded corner coordinates for grid detection
-- Vision tasks share state via a module-level dictionary
-- ProcessController supports cancellation between tasks
-- WebSocket server uses a command processor pattern
+[Add your license information here]
+
+## 🤝 Contributing
+
+[Add contributing guidelines here]

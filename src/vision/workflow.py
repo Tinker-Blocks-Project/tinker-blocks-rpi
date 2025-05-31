@@ -9,20 +9,24 @@ from core.config import config
 
 
 async def ocr_grid_workflow(
-    send_message: Callable[[str], Awaitable[None]], check_cancelled: Callable[[], bool]
-) -> None:
+    send_message: Callable[[str], Awaitable[None]],
+    check_cancelled: Callable[[], bool],
+) -> list[list[str]]:
     """
     Complete OCR grid processing workflow.
 
     Args:
         send_message: Function to send status messages
         check_cancelled: Function to check if process was cancelled
+
+    Returns:
+        2D list representing the grid of commands
     """
     await send_message("Starting OCR grid processing workflow...")
 
     # Step 1: Capture image
     if check_cancelled():
-        return
+        return []
 
     await send_message("\n📸 Capturing image...")
     # TODO: In production, use: image_path = capture_image_client()
@@ -31,7 +35,7 @@ async def ocr_grid_workflow(
 
     # Step 2: Load and process image
     if check_cancelled():
-        return
+        return []
 
     await send_message("\n🔄 Processing image...")
     image = Image.from_file(image_path)
@@ -41,7 +45,7 @@ async def ocr_grid_workflow(
 
     # Step 3: Create perspective grid
     if check_cancelled():
-        return
+        return []
 
     await send_message("\n📐 Creating perspective grid...")
     grid = PerspectiveGrid(
@@ -62,7 +66,7 @@ async def ocr_grid_workflow(
 
     # Step 4: Run OCR
     if check_cancelled():
-        return
+        return []
 
     await send_message("\n🔍 Running OCR...")
     temp_path = "temp_rotated_image.jpg"
@@ -82,7 +86,7 @@ async def ocr_grid_workflow(
 
     # Step 5: Map OCR to grid
     if check_cancelled():
-        return
+        return []
 
     await send_message("\n🗺️ Mapping OCR results to grid...")
     ocr2grid = OCR2Grid(ocr_results, squares)
@@ -93,9 +97,5 @@ async def ocr_grid_workflow(
     await send_message("✓ Grid mapping complete!")
     await send_message(f"\n📊 Results:\n{grid_json}")
 
-    # Step 6: Future - Interpreter pattern
-    if check_cancelled():
-        return
-
-    # TODO: Add block interpretation logic here
-    await send_message("\n✅ Workflow completed successfully!")
+    # Return the grid data
+    return ocr2grid.grid

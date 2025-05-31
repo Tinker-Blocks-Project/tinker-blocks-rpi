@@ -1,15 +1,18 @@
 import asyncio
-from typing import Callable, Awaitable, Optional, Protocol
+from typing import Callable, Awaitable, Optional, Protocol, TypeVar, Any
+
+T_co = TypeVar("T_co", covariant=True)
+T = TypeVar("T")
 
 
-class WorkflowFunc(Protocol):
+class WorkflowFunc(Protocol[T_co]):
     """Protocol for workflow functions."""
 
     async def __call__(
         self,
         send_message: Callable[[str], Awaitable[None]],
         check_cancelled: Callable[[], bool],
-    ) -> None: ...
+    ) -> T_co: ...
 
 
 class ProcessController:
@@ -19,6 +22,7 @@ class ProcessController:
         self.send_message = send_message
         self._current_task: Optional[asyncio.Task] = None
         self._cancelled = False
+        self._last_result: Any = None  # Store last workflow result
 
     def check_cancelled(self) -> bool:
         """Check if the current process has been cancelled."""
@@ -26,9 +30,9 @@ class ProcessController:
 
     async def run_workflow(
         self,
-        workflow: WorkflowFunc,
+        workflow: WorkflowFunc[T],
         name: str = "Workflow",
-    ) -> bool:
+    ) -> tuple[bool, Optional[T]]:
         """
         Run a workflow function.
 
@@ -37,9 +41,10 @@ class ProcessController:
             name: Name of the workflow for logging
 
         Returns:
-            True if workflow completed successfully, False if cancelled or error
+            Tuple of (success: bool, result: Optional[T])
         """
         self._cancelled = False
+        result = None
 
         try:
             await self.send_message(f"Starting {name}...")
@@ -49,15 +54,16 @@ class ProcessController:
                 workflow(self.send_message, self.check_cancelled)
             )
 
-            await self._current_task
-            return True
+            result = await self._current_task
+            self._last_result = result
+            return True, result
 
         except asyncio.CancelledError:
             await self.send_message(f"\n❌ {name} was cancelled")
-            return False
+            return False, None
         except Exception as e:
             await self.send_message(f"\n❌ {name} failed: {str(e)}")
-            return False
+            return False, None
         finally:
             self._current_task = None
 
@@ -71,3 +77,8 @@ class ProcessController:
     def is_running(self) -> bool:
         """Check if a workflow is currently running."""
         return self._current_task is not None and not self._current_task.done()
+
+    @property
+    def last_result(self) -> Any:
+        """Get the result from the last completed workflow."""
+        return self._last_result

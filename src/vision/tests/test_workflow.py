@@ -64,10 +64,14 @@ async def test_ocr_grid_workflow_messages():
 
         mock_ocr2grid = MagicMock()
         mock_ocr2grid.get_grid_as_json.return_value = "{}"
+        mock_ocr2grid.grid = []  # Mock the grid property
         mock_ocr2grid_class.return_value = mock_ocr2grid
 
         # Run workflow
-        await ocr_grid_workflow(mock_send, never_cancelled)
+        grid_result = await ocr_grid_workflow(mock_send, never_cancelled)
+
+    # Verify it returned a list (empty due to mocks)
+    assert isinstance(grid_result, list)
 
     # Verify expected messages
     expected_phrases = [
@@ -77,10 +81,10 @@ async def test_ocr_grid_workflow_messages():
         "Creating perspective grid",
         "Running OCR",
         "Mapping OCR results",
-        "Workflow completed successfully",
+        "Grid mapping complete",
     ]
 
     for phrase in expected_phrases:
-        assert any(phrase in msg for msg in messages), (
-            f"Missing expected phrase: {phrase}"
-        )
+        assert any(
+            phrase in msg for msg in messages
+        ), f"Missing expected phrase: {phrase}"

@@ -24,6 +24,10 @@ pytest = "^7.4.0"
 pytest-asyncio = "^0.21.0"
 ruff = "^0.5.0"
 
+[tool.pytest.ini_options]
+testpaths = ["src"]
+pythonpath = ["src"]
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"

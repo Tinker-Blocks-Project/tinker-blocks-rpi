@@ -1,9 +1,9 @@
 import json
 import websockets
-from typing import Callable, Awaitable, Optional
+from typing import Callable, Awaitable
 
 connected_clients = set()
-_command_processor: Optional[Callable[[str, dict], Awaitable[None]]] = None
+_command_processor: Callable[[str, dict], Awaitable[None]] | None = None
 
 
 def set_command_processor(processor: Callable[[str, dict], Awaitable[None]]):
@@ -36,7 +36,8 @@ async def handler(websocket):
 
                 if command and _command_processor:
                     # Process command through the registered processor
-                    await _command_processor(command, data)
+                    params = data.get("params", {})
+                    await _command_processor(command, params)
                 else:
                     await websocket.send(
                         json.dumps({"error": "No command processor registered"})
