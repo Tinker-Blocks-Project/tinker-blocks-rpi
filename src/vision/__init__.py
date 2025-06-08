@@ -1,5 +1,5 @@
-from .image import Image
+from .types import Image, Grid
 
-__all__ = ["Image"]
+__all__ = ["Image", "Grid"]
 
-# Note: tasks module is imported separately in main.py to avoid circular dependencies
+# Note: workflow and tasks modules are imported separately to avoid circular dependencies

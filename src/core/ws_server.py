@@ -12,8 +12,12 @@ def set_command_processor(processor: Callable[[str, dict], Awaitable[None]]):
     _command_processor = processor
 
 
-async def broadcast(message: str):
-    """Broadcast a message to all connected clients."""
+async def broadcast(message: str, debug: bool = True):
+    """Broadcast a message to all connected clients and print to console."""
+    # Print to console for CLI visibility
+    if debug:
+        print(message)
+
     # Create list copy to avoid modification during iteration
     for client in list(connected_clients):
         try:

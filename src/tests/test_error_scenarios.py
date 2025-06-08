@@ -143,13 +143,24 @@ async def test_ocr_workflow_with_missing_image():
         # Simulate file not found
         mock_from_file.side_effect = FileNotFoundError("Image not found")
 
+        # Create a mock OCR engine
+        from unittest.mock import AsyncMock
+
+        mock_ocr = AsyncMock()
+
         success, result = await controller.run_workflow(
-            ocr_grid_workflow, "Missing Image Test"
+            lambda send_message, check_cancelled: ocr_grid_workflow(
+                mock_ocr, send_message, check_cancelled
+            ),
+            "Missing Image Test",
         )
 
-        assert success is False
-        assert result is None
-        assert any("failed: Image not found" in msg for msg in messages)
+        assert success is True  # Workflow completes but returns empty grid
+        assert result is not None
+        assert result.blocks == []  # Empty grid due to error
+        assert any(
+            "Image processing failed: Image not found" in msg for msg in messages
+        )
 
 
 @pytest.mark.asyncio

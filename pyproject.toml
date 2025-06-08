@@ -18,6 +18,10 @@ easyocr = "^1.7.0"
 pytesseract = "^0.3.10"
 flask = "^3.0.0"
 depthai = "^2.24.0"
+langchain = "^0.3.25"
+langchain-anthropic = "^0.3.15"
+langchain-openai = "^0.3.21"
+dotenv = "^0.9.9"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.0"

@@ -2,7 +2,7 @@
 
 import asyncio
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, mock_open
 from core import ProcessController
 from vision.workflow import ocr_grid_workflow
 from engine.workflow import engine_workflow
@@ -18,61 +18,62 @@ async def test_ocr_workflow_full_execution():
 
     controller = ProcessController(capture_messages)
 
+    # Mock OCR engine
+    from vision.types import Grid
+    from unittest.mock import AsyncMock
+
+    mock_ocr = AsyncMock()
+    mock_grid_result = Grid(
+        blocks=[
+            ["FORWARD", "RIGHT", "", ""],
+            ["LEFT", "FORWARD", "", ""],
+            ["", "", "", ""],
+        ]
+    )
+    mock_ocr.process_image.return_value = mock_grid_result
+
     # Mock the external dependencies
     with (
         patch("vision.workflow.Image") as mock_image,
         patch("vision.workflow.PerspectiveGrid") as mock_grid,
-        patch("vision.workflow.EasyOCR") as mock_ocr,
-        patch("vision.workflow.OCR2Grid") as mock_ocr2grid,
         patch("os.makedirs"),
         patch("os.path.exists", return_value=True),
         patch("os.remove"),
+        patch("builtins.open", mock_open()) as mock_file,
     ):
         # Setup mocks
         mock_image_inst = MagicMock()
         mock_image_inst.rotate_90_clockwise.return_value = mock_image_inst
         mock_image_inst.to_grayscale.return_value = mock_image_inst
+        mock_image_inst.save = MagicMock()
         mock_image.from_file.return_value = mock_image_inst
 
         mock_grid_inst = MagicMock()
-        mock_grid_inst.draw_grid.return_value = MagicMock()
-        mock_grid_inst.get_grid_squares.return_value = [MagicMock() for _ in range(160)]
+        mock_grid_inst.draw_grid.return_value = mock_image_inst
+        mock_grid_inst.apply_perspective_transform.return_value = mock_image_inst
         mock_grid.return_value = mock_grid_inst
-
-        mock_ocr_inst = MagicMock()
-        mock_ocr_inst.process_image.return_value = [
-            {"text": "FORWARD", "box": [[10, 10], [50, 10], [50, 30], [10, 30]]},
-            {"text": "RIGHT", "box": [[60, 10], [100, 10], [100, 30], [60, 30]]},
-        ]
-        mock_ocr.return_value = mock_ocr_inst
-
-        mock_ocr2grid_inst = MagicMock()
-        mock_ocr2grid_inst.grid = [
-            ["FORWARD", "RIGHT", "", ""],
-            ["LEFT", "FORWARD", "", ""],
-            ["", "", "", ""],
-        ]
-        mock_ocr2grid_inst.get_grid_as_json.return_value = '{"grid": "data"}'
-        mock_ocr2grid.return_value = mock_ocr2grid_inst
 
         # Run workflow
         success, result = await controller.run_workflow(
-            ocr_grid_workflow, "OCR Grid Test"
+            lambda send_message, check_cancelled: ocr_grid_workflow(
+                mock_ocr, send_message, check_cancelled
+            ),
+            "OCR Grid Test",
         )
 
         # Verify success
         assert success is True
-        assert result == mock_ocr2grid_inst.grid
+        assert isinstance(result, Grid)
+        assert result.blocks == mock_grid_result.blocks
 
         # Verify workflow steps executed
         workflow_steps = [
-            "Starting OCR grid processing",
             "Capturing image",
             "Processing image",
             "Creating perspective grid",
-            "Running OCR",
-            "Mapping OCR results",
-            "Grid mapping complete",
+            "Processing images saved to folder",
+            "Running OCR on transformed grid",
+            "Grid processing complete",
         ]
 
         for step in workflow_steps:
@@ -150,19 +151,24 @@ async def test_full_pipeline_workflow():
         ["MOVE"],
     ]
 
-    with patch("vision.workflow.ocr_grid_workflow") as mock_ocr:
-        mock_ocr.return_value = mock_grid
+    from vision.types import Grid
+
+    with patch("vision.workflow.ocr_grid_workflow") as mock_ocr_workflow:
+        mock_ocr_workflow.return_value = Grid(blocks=mock_grid)
 
         # Run OCR workflow
-        success1, grid_result = await controller.run_workflow(mock_ocr, "OCR Phase")
+        success1, grid_result = await controller.run_workflow(
+            mock_ocr_workflow, "OCR Phase"
+        )
 
         assert success1 is True
-        assert grid_result == mock_grid
+        assert isinstance(grid_result, Grid)
+        assert grid_result.blocks == mock_grid
 
         # Run Engine workflow with the grid
         success2, engine_result = await controller.run_workflow(
             lambda send_message, check_cancelled: engine_workflow(
-                send_message, check_cancelled, grid_result
+                send_message, check_cancelled, grid_result.blocks
             ),
             "Engine Phase",
         )

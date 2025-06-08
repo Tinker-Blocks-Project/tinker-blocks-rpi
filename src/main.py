@@ -3,9 +3,13 @@ from typing import Any
 from core import start_ws_server, broadcast, set_command_processor, ProcessController
 from vision.workflow import ocr_grid_workflow
 from engine.workflow import engine_workflow
+from vision.ocr import VLM_OCR
+from core.chat_model import get_chat_model
 
 # Global controller instance
 controller: ProcessController | None = None
+
+ocr_engine = VLM_OCR(chat_model=get_chat_model())
 
 
 async def handle_run_command(params: dict[str, Any] | None = None):
@@ -24,15 +28,26 @@ async def handle_run_command(params: dict[str, Any] | None = None):
     if workflow_name == "ocr_grid":
         # Run OCR grid workflow
         success, grid_data = await controller.run_workflow(
-            ocr_grid_workflow, "OCR Grid Processing"
+            lambda send_message, check_cancelled: ocr_grid_workflow(
+                ocr_engine=ocr_engine,
+                send_message=send_message,
+                check_cancelled=check_cancelled,
+            ),
+            "OCR Grid Processing",
         )
+
+        if not success:
+            await controller.send_message("OCR grid workflow failed")
+            return
 
         # Check if should chain to engine workflow
         if success and params and params.get("chain_engine", False):
             await controller.send_message("\n🔗 Chaining to engine workflow...")
-            success, engine_result = await controller.run_workflow(
+            success, _ = await controller.run_workflow(
                 lambda send_message, check_cancelled: engine_workflow(
-                    send_message, check_cancelled, grid_data
+                    send_message=send_message,
+                    check_cancelled=check_cancelled,
+                    grid_data=grid_data.blocks if grid_data else None,
                 ),
                 "Engine Execution",
             )
@@ -47,9 +62,11 @@ async def handle_run_command(params: dict[str, Any] | None = None):
             if isinstance(controller.last_result, list):
                 grid_data = controller.last_result
 
-        success, result = await controller.run_workflow(
+        success, _ = await controller.run_workflow(
             lambda send_message, check_cancelled: engine_workflow(
-                send_message, check_cancelled, grid_data
+                send_message=send_message,
+                check_cancelled=check_cancelled,
+                grid_data=grid_data,
             ),
             "Engine Execution",
         )
@@ -57,14 +74,21 @@ async def handle_run_command(params: dict[str, Any] | None = None):
     elif workflow_name == "full":
         # Run full pipeline: OCR -> Engine
         success, grid_data = await controller.run_workflow(
-            ocr_grid_workflow, "OCR Grid Processing"
+            lambda send_message, check_cancelled: ocr_grid_workflow(
+                ocr_engine=ocr_engine,
+                send_message=send_message,
+                check_cancelled=check_cancelled,
+            ),
+            "OCR Grid Processing",
         )
 
         if success and grid_data:
             await controller.send_message("\n🔗 Proceeding to engine execution...")
-            success, engine_result = await controller.run_workflow(
+            success, _ = await controller.run_workflow(
                 lambda send_message, check_cancelled: engine_workflow(
-                    send_message, check_cancelled, grid_data
+                    send_message=send_message,
+                    check_cancelled=check_cancelled,
+                    grid_data=grid_data.blocks,
                 ),
                 "Engine Execution",
             )

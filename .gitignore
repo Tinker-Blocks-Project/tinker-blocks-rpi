@@ -8,6 +8,8 @@
 .AppleDouble
 .LSOverride
 
+output/*
+
 # Icon must end with two \r
 Icon
 

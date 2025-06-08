@@ -19,8 +19,8 @@ class Config(BaseModel):
     # Grid detection corner points (hardcoded for current setup)
     grid_corners: dict = {
         "top_right": (1054, 104),
-        "top_left": (30, 91),
-        "bottom_left": (33, 1712),
+        "top_left": (10, 100),
+        "bottom_left": (33, 1718),
         "bottom_right": (1014, 1726),
     }
 

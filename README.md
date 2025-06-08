@@ -2,14 +2,14 @@
 
 ## Overview
 
-TinkerBlocks RPI is a computer vision system that recognizes physical programming blocks and executes them using an interpreter pattern. The system captures images of blocks arranged on a grid, performs OCR to read commands, maps them to a 16x10 grid, and executes the resulting program.
+TinkerBlocks RPI is a computer vision system that recognizes physical programming blocks and executes them using an interpreter pattern. The system captures images of blocks arranged on a grid, performs AI-powered OCR to read commands, maps them directly to a 16x10 grid, and executes the resulting program with comprehensive timing and file tracking.
 
 ## 🎯 Purpose
 
 An educational tool for teaching programming concepts through physical blocks:
 1. **Capture**: Camera captures image of arranged blocks
-2. **Recognize**: OCR extracts text/commands from blocks
-3. **Map**: Commands are mapped to grid positions
+2. **Process**: Image rotation and perspective transformation
+3. **Recognize**: AI-powered OCR extracts text/commands from blocks with direct grid mapping
 4. **Execute**: Interpreter runs the commands with visual feedback
 
 ## 🏗️ Architecture
@@ -18,16 +18,16 @@ The project follows clean architecture with three main modules:
 
 ### [Core Module](src/core/README.md)
 Foundational infrastructure with zero dependencies:
-- WebSocket server for real-time communication
+- WebSocket server for real-time communication with CLI output
 - Process controller for workflow management
 - Centralized configuration
 
 ### [Vision Module](src/vision/README.md)
-Computer vision and image processing:
-- Image capture and manipulation
-- Grid detection with perspective transformation
-- OCR processing to extract text
-- Mapping text to grid positions
+Computer vision and AI-powered image processing:
+- Image capture and manipulation with timestamped file organization
+- Grid detection with perspective transformation and rectification
+- AI-powered OCR processing with direct grid mapping
+- Comprehensive timing measurements and file tracking
 
 ### [Engine Module](src/engine/README.md)
 Interpreter pattern implementation:
@@ -44,10 +44,10 @@ tinker-blocks-rpi/
 │   ├── core/           # Core infrastructure
 │   │   ├── tests/      # Core module tests
 │   │   └── README.md   # Core documentation
-│   ├── vision/         # Computer vision
+│   ├── vision/         # Computer vision & AI-powered OCR
 │   │   ├── capture/    # Camera components
-│   │   ├── grid/       # Grid detection
-│   │   ├── ocr/        # OCR processing
+│   │   ├── grid/       # Grid detection & perspective transformation
+│   │   ├── ocr/        # AI-powered OCR with unified interface
 │   │   ├── tests/      # Vision module tests
 │   │   └── README.md   # Vision documentation
 │   ├── engine/         # Command interpreter
@@ -62,7 +62,7 @@ tinker-blocks-rpi/
 │   ├── main.py         # Application entry point
 │   └── conftest.py     # Pytest configuration
 ├── assets/              # Image assets
-├── output/              # Generated outputs
+├── output/              # Generated outputs (timestamped folders)
 ├── pyproject.toml       # Poetry configuration
 ├── poetry.lock          # Locked dependencies
 ├── .gitignore           # Git ignore rules
@@ -75,6 +75,7 @@ tinker-blocks-rpi/
 - Python 3.13+
 - Poetry package manager
 - Camera (local or remote Raspberry Pi)
+- API key for LLM for AI-powered OCR
 
 ### Installation
 ```bash
@@ -85,6 +86,10 @@ cd tinker-blocks-rpi
 # Install dependencies
 poetry install
 
+# Set up environment variables (for AI OCR)
+export OPENAI_API_KEY="your-api-key"
+export ANTHROPIC_API_KEY="your-api-key"
+
 # Activate environment
 poetry shell
 ```
@@ -94,7 +99,7 @@ poetry shell
 python src/main.py
 ```
 
-The WebSocket server starts on `ws://0.0.0.0:8765`
+The WebSocket server starts on `ws://0.0.0.0:8765` with real-time console output.
 
 ### Available Workflows
 
@@ -104,7 +109,7 @@ Send JSON commands to the WebSocket server:
 // Run complete pipeline (OCR → Engine)
 {"command": "run", "params": {"workflow": "full"}}
 
-// Run OCR only
+// Run OCR only with AI-powered processing
 {"command": "run", "params": {"workflow": "ocr_grid"}}
 
 // Run OCR with automatic engine execution
@@ -115,6 +120,18 @@ Send JSON commands to the WebSocket server:
 
 // Stop current process
 {"command": "stop"}
+```
+
+### Output Structure
+
+Each workflow run creates a timestamped folder with comprehensive output:
+
+```
+output/20250608_221634/
+├── rotated_original.jpg     # Original image after rotation
+├── grid_overlay.jpg         # Grid visualization
+├── transformed_grid.jpg     # Perspective-corrected image
+└── grid_result.json         # Complete grid data with metadata
 ```
 
 ## 🧪 Testing
@@ -166,25 +183,27 @@ The `src/tests/` directory also contains demo scripts:
 
 Edit `core/config.py` for system settings:
 - Server IPs and ports
-- Grid dimensions and corners
+- Grid dimensions and corner coordinates
 - Directory paths
+- LLM model settings
 
 ## 📚 Module Documentation
 
 For detailed information about each module:
 - **[Core Module Documentation](src/core/README.md)** - Infrastructure and architecture
-- **[Vision Module Documentation](src/vision/README.md)** - Image processing pipeline
+- **[Vision Module Documentation](src/vision/README.md)** - AI-powered image processing pipeline
 - **[Engine Module Documentation](src/engine/README.md)** - Command interpreter system
 
 ## 🛠️ Key Technologies
 
 - **Python 3.13** - Core language
-- **OpenCV** - Computer vision
-- **EasyOCR** - Text recognition
-- **WebSockets** - Real-time communication
+- **OpenCV** - Computer vision and image processing
+- **LangChain** - AI model integration for OCR
+- **OpenAI GPT-4V/Claude** - Vision-capable AI models
+- **WebSockets** - Real-time communication with console output
 - **asyncio** - Asynchronous programming
 - **Poetry** - Dependency management
-- **Pydantic** - Configuration validation
+- **Pydantic** - Data validation and structured output
 
 ## 🎮 Command Reference
 

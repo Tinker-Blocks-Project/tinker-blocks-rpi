@@ -4,7 +4,7 @@ from typing import Any, cast
 from numpy.typing import NDArray
 from pydantic import BaseModel, Field, ConfigDict
 from vision.grid.square import GridSquare
-from vision.image import Image
+from vision.types import Image
 
 
 class PerspectiveGrid(BaseModel):
@@ -200,3 +200,19 @@ class PerspectiveGrid(BaseModel):
             cv2.line(image_array, start_point, end_point, color, thickness)
 
         return Image(image=image_array)
+
+    def apply_perspective_transform(self, image: Image) -> Image:
+        """
+        Apply perspective transformation to the entire image to create a rectified grid view.
+
+        Args:
+            image: The input image to transform
+
+        Returns:
+            Transformed image with corrected perspective
+        """
+        width, height = self.dimensions
+        transformed_image = cv2.warpPerspective(
+            image.image, self.matrix, (int(width), int(height))
+        )
+        return Image(image=transformed_image)

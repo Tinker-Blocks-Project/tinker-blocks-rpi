@@ -1,3 +1,4 @@
-from .wrapper import EasyOCR
+from .protocol import OCRProtocol
+from .vlm_ocr import VLM_OCR
 
-__all__ = ["EasyOCR"]
+__all__ = ["OCRProtocol", "VLM_OCR"]

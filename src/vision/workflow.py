@@ -1,51 +1,75 @@
 """Vision processing workflow."""
 
 import os
+import time
+import json
+from datetime import datetime
 from typing import Callable, Awaitable
-from vision import Image
-from vision.grid import PerspectiveGrid, OCR2Grid
-from vision.ocr import EasyOCR
+from vision.types import Image, Grid
+from vision.grid import PerspectiveGrid
+from vision.ocr import OCRProtocol
 from core.config import config
 
 
 async def ocr_grid_workflow(
+    ocr_engine: OCRProtocol,
     send_message: Callable[[str], Awaitable[None]],
     check_cancelled: Callable[[], bool],
-) -> list[list[str]]:
+) -> Grid:
     """
     Complete OCR grid processing workflow.
 
     Args:
+        ocr_engine: OCR implementation that conforms to OCRProtocol
         send_message: Function to send status messages
         check_cancelled: Function to check if process was cancelled
 
     Returns:
-        2D list representing the grid of commands
+        Grid object representing the detected commands
     """
-    await send_message("Starting OCR grid processing workflow...")
+    # Start total timing
+    total_start_time = time.time()
+
+    # Generate timestamp for file naming
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     # Step 1: Capture image
     if check_cancelled():
-        return []
+        return Grid(blocks=[])
 
     await send_message("\n📸 Capturing image...")
-    # TODO: In production, use: image_path = capture_image_client()
-    image_path = "assets/oak-d_images/frame_010.jpg"
+    # In production, replace with: image_path = capture_image_client() or capture_image_local()
+    image_path = "assets/oak-d_images/frame_064.png"
     await send_message(f"Using image: {image_path}")
 
     # Step 2: Load and process image
     if check_cancelled():
-        return []
+        return Grid(blocks=[])
 
+    processing_start_time = time.time()
     await send_message("\n🔄 Processing image...")
-    image = Image.from_file(image_path)
-    rotated = image.rotate_90_clockwise()
-    gray = rotated.to_grayscale()
-    await send_message("✓ Image rotated and converted to grayscale")
+    try:
+        image = Image.from_file(image_path)
+        rotated = image.rotate_90_clockwise()
 
-    # Step 3: Create perspective grid
+        # Create timestamped output folder early to save all processing images
+        output_folder = f"{config.output_dir}/{timestamp}"
+        os.makedirs(output_folder, exist_ok=True)
+
+        # Save rotated original image
+        rotated_path = f"{output_folder}/rotated_original.jpg"
+        rotated.save(rotated_path)
+
+        # Convert to grayscale for grid processing
+        gray = rotated.to_grayscale()
+        await send_message("✓ Image rotated and converted to grayscale")
+    except Exception as e:
+        await send_message(f"❌ Image processing failed: {str(e)}")
+        return Grid(blocks=[])
+
+    # Step 3: Create perspective grid and apply transformation
     if check_cancelled():
-        return []
+        return Grid(blocks=[])
 
     await send_message("\n📐 Creating perspective grid...")
     grid = PerspectiveGrid(
@@ -55,47 +79,88 @@ async def ocr_grid_workflow(
         bottom_right=config.grid_corners["bottom_right"],
     )
 
-    # Save grid visualization
-    os.makedirs(config.output_dir, exist_ok=True)
+    # Save grid visualization on original image
     grid_image = grid.draw_grid(gray)
-    grid_image.save(f"{config.output_dir}/grid_image.jpg")
+    grid_overlay_path = f"{output_folder}/grid_overlay.jpg"
+    grid_image.save(grid_overlay_path)
 
-    # Get grid squares
-    squares = grid.get_grid_squares(gray)
-    await send_message(f"✓ Grid created with {len(squares)} squares")
+    # Apply perspective transformation to get rectified grid image
+    transformed_image = grid.apply_perspective_transform(grid_image)
 
-    # Step 4: Run OCR
+    # Save the perspective-transformed image for OCR processing
+    transformed_path = f"{output_folder}/transformed_grid.jpg"
+    transformed_image.save(transformed_path)
+    await send_message(f"✓ Processing images saved to folder: {output_folder}/")
+
+    processing_end_time = time.time()
+    processing_time = processing_end_time - processing_start_time
+
+    # Step 4: Run OCR on transformed image
     if check_cancelled():
-        return []
+        return Grid(blocks=[])
 
-    await send_message("\n🔍 Running OCR...")
-    temp_path = "temp_rotated_image.jpg"
-    rotated.save(temp_path)
-
+    ocr_start_time = time.time()
+    await send_message("\n🔍 Running OCR on transformed grid...")
     try:
-        ocr_reader = EasyOCR()
-        ocr_results = ocr_reader.process_image(temp_path)
-        await send_message(f"✓ OCR found {len(ocr_results)} text regions")
-    finally:
-        # Clean up temp file
-        if os.path.exists(temp_path):
-            try:
-                os.remove(temp_path)
-            except Exception as e:
-                print(f"Could not remove temporary file {temp_path}: {e}")
+        # OCR engine processes the transformed image directly
+        grid_result = await ocr_engine.process_image(transformed_path)
+        non_empty_cells = len(
+            [cell for row in grid_result.blocks for cell in row if cell.strip()]
+        )
+        await send_message(f"✓ OCR completed, found {non_empty_cells} non-empty cells")
+    except Exception as e:
+        await send_message(f"❌ OCR failed: {str(e)}")
+        return Grid(blocks=[])
 
-    # Step 5: Map OCR to grid
-    if check_cancelled():
-        return []
+    ocr_end_time = time.time()
+    ocr_time = ocr_end_time - ocr_start_time
+    total_end_time = time.time()
+    total_time = total_end_time - total_start_time
 
-    await send_message("\n🗺️ Mapping OCR results to grid...")
-    ocr2grid = OCR2Grid(ocr_results, squares)
-    ocr2grid.fill_grid()
-    ocr2grid.print_grid()
-    grid_json = ocr2grid.get_grid_as_json()
+    # Format and display final grid result
+    await send_message("✓ Grid processing complete!")
+    formatted_grid = _format_grid_for_display(grid_result)
+    await send_message(f"\n📊 Grid Result:\n{formatted_grid}")
 
-    await send_message("✓ Grid mapping complete!")
-    await send_message(f"\n📊 Results:\n{grid_json}")
+    # Save grid result as JSON
+    grid_json_path = f"{output_folder}/grid_result.json"
+    with open(grid_json_path, "w") as f:
+        json.dump(
+            {
+                "timestamp": timestamp,
+                "blocks": grid_result.blocks,
+                "non_empty_cells": len(
+                    [cell for row in grid_result.blocks for cell in row if cell.strip()]
+                ),
+                "grid_dimensions": {
+                    "rows": len(grid_result.blocks),
+                    "cols": len(grid_result.blocks[0]) if grid_result.blocks else 0,
+                },
+            },
+            f,
+            indent=2,
+        )
 
-    # Return the grid data
-    return ocr2grid.grid
+    # Send timing information
+    await send_message("\n⏱️ Timing Summary:")
+    await send_message(f"   Processing time: {processing_time:.2f}s")
+    await send_message(f"   OCR time: {ocr_time:.2f}s")
+    await send_message(f"   Total time: {total_time:.2f}s")
+
+    # Report all saved files
+    await send_message(f"\n💾 Saved files in {output_folder}/:")
+    await send_message("   - rotated_original.jpg")
+    await send_message("   - grid_overlay.jpg")
+    await send_message("   - transformed_grid.jpg")
+    await send_message("   - grid_result.json")
+
+    return grid_result
+
+
+def _format_grid_for_display(grid: Grid) -> str:
+    """Format grid for console display."""
+    lines = []
+    for i, row in enumerate(grid.blocks):
+        formatted_row = " | ".join(f"{cell:>8}" if cell else "        " for cell in row)
+        lines.append(f"Row {i:2d}: {formatted_row}")
+    return "\n".join(lines)

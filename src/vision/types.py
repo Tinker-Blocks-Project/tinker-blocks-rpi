@@ -1,8 +1,12 @@
 import cv2
 import numpy as np
-from typing import Any, Sequence
+from typing import Any, Sequence, Annotated
 from numpy.typing import NDArray
 from pydantic import BaseModel, Field, ConfigDict
+
+
+class Grid(BaseModel):
+    blocks: Annotated[list[list[str]], "2D list of texts representing the grid"]
 
 
 class Image(BaseModel):
