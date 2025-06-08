@@ -2,6 +2,7 @@ from .workflow import engine_workflow
 from .parser import GridParser
 from .executor import Executor
 from .context import ExecutionContext, SensorInterface, MockSensors
+from .hardware import HardwareInterface, CarHardware, MockHardware
 from .commands import (
     Command,
     CommandRegistry,
@@ -45,6 +46,10 @@ __all__ = [
     "ExecutionContext",
     "SensorInterface",
     "MockSensors",
+    # Hardware
+    "HardwareInterface",
+    "CarHardware",
+    "MockHardware",
     # Commands
     "Command",
     "CommandRegistry",

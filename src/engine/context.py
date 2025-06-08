@@ -1,9 +1,12 @@
 """Execution context for the TinkerBlocks engine."""
 
-from typing import Protocol, Callable, Awaitable, Any
+from typing import Protocol, Callable, Awaitable, Any, Union, TYPE_CHECKING
 from dataclasses import dataclass, field
 
 from .types import Position, Direction, Number, SensorType
+
+if TYPE_CHECKING:
+    from .hardware import HardwareInterface
 
 
 class SensorInterface(Protocol):
@@ -51,7 +54,7 @@ class MockSensors:
 class ExecutionContext:
     """Context that maintains state during program execution."""
 
-    # Position and orientation
+    # Position and orientation (for tracking purposes)
     position: Position = field(default_factory=lambda: Position(0, 0))
     direction: Direction = Direction.FORWARD
 
@@ -66,7 +69,10 @@ class ExecutionContext:
     steps_executed: int = 0
     max_steps: int = 10000  # Prevent infinite loops
 
-    # Sensors
+    # Hardware interface for actual control
+    hardware: Union["HardwareInterface", None] = None
+
+    # Legacy sensors interface (for backward compatibility)
     sensors: SensorInterface = field(default_factory=MockSensors)
 
     # Callbacks
@@ -85,8 +91,20 @@ class ExecutionContext:
             return Position(1, 0)
         return Position(0, 0)
 
-    def move(self, distance: float):
+    async def move(self, distance: float):
         """Move the car by the given distance in current direction."""
+        # Use hardware interface if available
+        if self.hardware:
+            # Convert logical distance to real-world distance in cm
+            distance_cm = distance * 10  # 1 logical unit = 10cm
+            success = await self.hardware.move_distance(distance_cm)
+
+            if not success and self.send_message:
+                await self.send_message(
+                    f"⚠️ Hardware movement failed for distance {distance_cm}cm"
+                )
+
+        # Update position tracking regardless of hardware success
         # Get direction vector based on current orientation
         if self.direction == Direction.FORWARD:
             dx, dy = 0, 1
@@ -112,8 +130,18 @@ class ExecutionContext:
         self.position = new_position
         self.steps_executed += 1
 
-    def turn(self, degrees: float):
+    async def turn(self, degrees: float):
         """Turn the car by the given degrees (positive = right, negative = left)."""
+        # Use hardware interface if available
+        if self.hardware:
+            success = await self.hardware.rotate_degrees(degrees)
+
+            if not success and self.send_message:
+                await self.send_message(
+                    f"⚠️ Hardware rotation failed for {degrees} degrees"
+                )
+
+        # Update direction tracking regardless of hardware success
         # Normalize degrees to -360 to 360
         degrees = degrees % 360
         if degrees > 180:
@@ -163,14 +191,26 @@ class ExecutionContext:
 
     async def get_sensor_value(self, sensor_type: SensorType) -> Number | bool:
         """Get sensor reading."""
-        if sensor_type == SensorType.DISTANCE:
-            return await self.sensors.get_distance()
-        elif sensor_type == SensorType.OBSTACLE:
-            return await self.sensors.is_obstacle_detected()
-        elif sensor_type == SensorType.BLACK_DETECTED:
-            return await self.sensors.is_black_detected()
-        elif sensor_type == SensorType.BLACK_LOST:
-            return await self.sensors.is_black_lost()
+        # Use hardware interface if available, otherwise fall back to legacy sensors
+        if self.hardware:
+            if sensor_type == SensorType.DISTANCE:
+                return await self.hardware.get_distance_cm()
+            elif sensor_type == SensorType.OBSTACLE:
+                return await self.hardware.is_obstacle_detected()
+            elif sensor_type == SensorType.BLACK_DETECTED:
+                return await self.hardware.is_black_detected()
+            elif sensor_type == SensorType.BLACK_LOST:
+                return not await self.hardware.is_black_detected()
+        else:
+            # Fall back to legacy sensor interface
+            if sensor_type == SensorType.DISTANCE:
+                return await self.sensors.get_distance()
+            elif sensor_type == SensorType.OBSTACLE:
+                return await self.sensors.is_obstacle_detected()
+            elif sensor_type == SensorType.BLACK_DETECTED:
+                return await self.sensors.is_black_detected()
+            elif sensor_type == SensorType.BLACK_LOST:
+                return await self.sensors.is_black_lost()
         return 0
 
     def increment_steps(self):

@@ -43,11 +43,13 @@ async def handle_run_command(params: dict[str, Any] | None = None):
         # Check if should chain to engine workflow
         if success and params and params.get("chain_engine", False):
             await controller.send_message("\n🔗 Chaining to engine workflow...")
+            use_hardware = params.get("use_hardware", False)
             success, _ = await controller.run_workflow(
                 lambda send_message, check_cancelled: engine_workflow(
                     send_message=send_message,
                     check_cancelled=check_cancelled,
                     grid_data=grid_data.blocks if grid_data else None,
+                    use_hardware=use_hardware,
                 ),
                 "Engine Execution",
             )
@@ -56,6 +58,7 @@ async def handle_run_command(params: dict[str, Any] | None = None):
         # Run engine workflow directly
         # Check if grid data is provided or use last result
         grid_data = params.get("grid") if params else None
+        use_hardware = params.get("use_hardware", False) if params else False
 
         if not grid_data and controller.last_result:
             # Try to use last result if it's a grid
@@ -67,6 +70,7 @@ async def handle_run_command(params: dict[str, Any] | None = None):
                 send_message=send_message,
                 check_cancelled=check_cancelled,
                 grid_data=grid_data,
+                use_hardware=use_hardware,
             ),
             "Engine Execution",
         )
@@ -84,11 +88,13 @@ async def handle_run_command(params: dict[str, Any] | None = None):
 
         if success and grid_data:
             await controller.send_message("\n🔗 Proceeding to engine execution...")
+            use_hardware = params.get("use_hardware", False) if params else False
             success, _ = await controller.run_workflow(
                 lambda send_message, check_cancelled: engine_workflow(
                     send_message=send_message,
                     check_cancelled=check_cancelled,
                     grid_data=grid_data.blocks,
+                    use_hardware=use_hardware,
                 ),
                 "Engine Execution",
             )
@@ -142,8 +148,12 @@ async def main():
     print("  - full: Run complete pipeline (OCR -> Engine)")
     print("\nExample commands:")
     print('  {"command": "run", "params": {"workflow": "full"}}')
+    print('  {"command": "run", "params": {"workflow": "full", "use_hardware": true}}')
     print(
         '  {"command": "run", "params": {"workflow": "ocr_grid", "chain_engine": true}}'
+    )
+    print(
+        '  {"command": "run", "params": {"workflow": "engine", "use_hardware": true, "grid": [["MOVE", "10"], ["TURN", "RIGHT"]]}}'
     )
 
     await server.wait_closed()

@@ -39,7 +39,7 @@ async def test_ocr_workflow_full_execution():
         patch("os.makedirs"),
         patch("os.path.exists", return_value=True),
         patch("os.remove"),
-        patch("builtins.open", mock_open()) as mock_file,
+        patch("builtins.open", mock_open()),
     ):
         # Setup mocks
         mock_image_inst = MagicMock()
@@ -128,7 +128,7 @@ async def test_engine_workflow_execution():
     assert final_state["direction"] == "forward"
 
     # Verify execution messages
-    assert any("Starting engine workflow" in msg for msg in messages)
+    assert any("Executing commands" in msg for msg in messages)
     assert any("Execution complete" in msg for msg in messages)
     assert any("Total steps executed: 7" in msg for msg in messages)
 

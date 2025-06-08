@@ -66,7 +66,7 @@ class MoveCommand(Command):
                     break
 
                 # Move one step
-                context.move(step_distance)
+                await context.move(step_distance)
 
                 # Small delay to prevent tight loops
                 await asyncio.sleep(0.01)
@@ -80,7 +80,7 @@ class MoveCommand(Command):
             if not isinstance(distance, (int, float)):
                 raise ValueError(f"Distance must be a number, got {type(distance)}")
 
-            context.move(float(distance))
+            await context.move(float(distance))
         else:
             raise ValueError("MOVE command has neither distance nor WHILE condition")
 
@@ -187,7 +187,7 @@ class TurnCommand(Command):
                     break
 
                 # Turn one step
-                context.turn(step_degrees)
+                await context.turn(step_degrees)
 
                 # Small delay to prevent tight loops
                 await asyncio.sleep(0.01)
@@ -200,7 +200,7 @@ class TurnCommand(Command):
             turn_degrees = await self.direction.evaluate(context)
 
             if isinstance(turn_degrees, (int, float)):
-                context.turn(float(turn_degrees))
+                await context.turn(float(turn_degrees))
             else:
                 raise ValueError(f"Invalid turn degrees: {turn_degrees}")
 

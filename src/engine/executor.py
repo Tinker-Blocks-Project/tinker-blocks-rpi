@@ -1,9 +1,12 @@
 """Command executor - executes the parsed command tree."""
 
-from typing import Callable, Awaitable
+from typing import Callable, Awaitable, Union, TYPE_CHECKING
 
 from .commands import Command
 from .context import ExecutionContext, SensorInterface
+
+if TYPE_CHECKING:
+    from .hardware import HardwareInterface
 
 
 class Executor:
@@ -14,6 +17,7 @@ class Executor:
         send_message: Callable[[str], Awaitable[None]] | None = None,
         check_cancelled: Callable[[], bool] | None = None,
         sensors: SensorInterface | None = None,
+        hardware: Union["HardwareInterface", None] = None,
     ):
         """Initialize the executor.
 
@@ -21,10 +25,12 @@ class Executor:
             send_message: Callback for sending status messages
             check_cancelled: Callback for checking if execution should be cancelled
             sensors: Sensor interface for getting sensor readings
+            hardware: Hardware interface for actual car control
         """
         self.send_message = send_message
         self.check_cancelled = check_cancelled
         self.sensors = sensors
+        self.hardware = hardware
 
     async def execute(self, commands: list[Command]) -> ExecutionContext:
         """Execute a list of commands.
@@ -42,6 +48,9 @@ class Executor:
 
         if self.sensors:
             context.sensors = self.sensors
+
+        if self.hardware:
+            context.hardware = self.hardware
 
         # Execute each command
         try:
@@ -86,6 +95,9 @@ class Executor:
 
         if self.sensors:
             context.sensors = self.sensors
+
+        if self.hardware:
+            context.hardware = self.hardware
 
         await command.execute(context)
         return context

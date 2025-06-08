@@ -16,6 +16,10 @@ class Config(BaseModel):
     ocr_server_ip: str = "192.168.1.102"
     ocr_server_port: int = 5000
 
+    # Car API settings
+    car_api_url: str = "http://192.168.1.100"
+    car_api_timeout: float = 15.0
+
     # Grid detection corner points (hardcoded for current setup)
     grid_corners: dict = {
         "top_right": (1054, 104),

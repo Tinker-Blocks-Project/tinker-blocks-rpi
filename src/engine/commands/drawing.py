@@ -21,6 +21,12 @@ class PenUpCommand(Command):
         if context.send_message:
             await context.send_message(f"Executing PEN_UP at {self.grid_position}")
 
+        # Use hardware interface if available
+        if context.hardware:
+            success = await context.hardware.set_pen_down(False)
+            if not success and context.send_message:
+                await context.send_message("⚠️ Hardware pen control failed")
+
         context.pen_down = False
         context.increment_steps()
 
@@ -46,6 +52,12 @@ class PenDownCommand(Command):
         """Execute the PEN_DOWN command."""
         if context.send_message:
             await context.send_message(f"Executing PEN_DOWN at {self.grid_position}")
+
+        # Use hardware interface if available
+        if context.hardware:
+            success = await context.hardware.set_pen_down(True)
+            if not success and context.send_message:
+                await context.send_message("⚠️ Hardware pen control failed")
 
         context.pen_down = True
         context.increment_steps()

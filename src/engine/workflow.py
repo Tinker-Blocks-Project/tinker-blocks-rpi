@@ -1,13 +1,15 @@
-from typing import Callable, Awaitable, Any
+from typing import Callable, Awaitable, Any, Optional
 
 from .parser import GridParser
 from .executor import Executor
+from .hardware import MockHardware, CarHardware
 
 
 async def engine_workflow(
     send_message: Callable[[str], Awaitable[None]],
     check_cancelled: Callable[[], bool],
     grid_data: list[list[str]] | None = None,
+    use_hardware: bool = False,
 ) -> dict[str, Any]:
     """Process a grid and execute the resulting program.
 
@@ -15,12 +17,11 @@ async def engine_workflow(
         send_message: Callback for sending status messages
         check_cancelled: Callback for checking if execution should be cancelled
         grid_data: 2D grid of programming blocks
+        use_hardware: Whether to use real hardware API or mock hardware
 
     Returns:
         Dictionary with execution results
     """
-    await send_message("🚀 Starting engine workflow...")
-
     # Validate input
     if not grid_data:
         await send_message("❌ No grid data provided")
@@ -76,7 +77,15 @@ async def engine_workflow(
 
         # Execute commands
         await send_message("\n⚡ Executing commands...")
-        executor = Executor(send_message, check_cancelled)
+
+        # Initialize hardware interface
+        hardware = CarHardware() if use_hardware else MockHardware()
+        if use_hardware:
+            await send_message("🔗 Using real hardware API")
+        else:
+            await send_message("🤖 Using mock hardware")
+
+        executor = Executor(send_message, check_cancelled, hardware=hardware)
         context = await executor.execute(commands)
 
         # Get final state
