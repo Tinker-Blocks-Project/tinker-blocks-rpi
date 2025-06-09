@@ -9,6 +9,7 @@ core/
 ├── __init__.py             # Module exports
 ├── ws_server.py            # WebSocket server implementation
 ├── process_controller.py   # Workflow execution controller
+├── types.py                # Core type definitions (LogLevel enum)
 └── config.py               # Centralized configuration
 ```
 
@@ -24,11 +25,12 @@ Real-time bidirectional communication server:
 
 ```python
 from core import start_ws_server, broadcast, set_command_processor
+from core.types import LogLevel
 
 # Register command handler
 async def process_command(command: str, params: dict):
     if command == "run":
-        await broadcast("Starting process...")
+        await broadcast("Starting process...", LogLevel.INFO)
 
 set_command_processor(process_command)
 
@@ -46,18 +48,22 @@ Manages workflow execution with cancellation support:
 
 ```python
 from core import ProcessController
+from core.types import LogLevel
 
 # Create controller
 controller = ProcessController(broadcast)
 
 # Define a workflow
 async def my_workflow(send_message, check_cancelled):
-    await send_message("Starting...")
+    await send_message("Starting...", LogLevel.INFO)
+    await send_message("Debug: initializing state", LogLevel.DEBUG)
     
     if check_cancelled():
+        await send_message("Operation cancelled", LogLevel.WARNING)
         return None
         
     # Do work and return result
+    await send_message("Work completed successfully", LogLevel.SUCCESS)
     return {"status": "complete", "data": [1, 2, 3]}
 
 # Run workflow
@@ -83,6 +89,44 @@ print(config.grid_cols)       # 16
 # Settings are immutable by default
 ```
 
+### Logging System (`types.py`, `ws_server.py`)
+
+Enhanced logging system with smart message routing:
+- **LogLevel Enum**: Structured severity levels for all messages
+- **Smart Routing**: DEBUG messages CLI-only, others to both UI and CLI
+- **Clean UI**: Prevents debug noise in user interface
+- **Rich CLI**: Detailed execution tracing for developers
+
+```python
+from core.types import LogLevel
+from core import broadcast
+
+# Available log levels
+await broadcast("Detailed execution info", LogLevel.DEBUG)    # CLI only
+await broadcast("General status update", LogLevel.INFO)      # UI + CLI
+await broadcast("Operation completed", LogLevel.SUCCESS)     # UI + CLI  
+await broadcast("Recoverable issue", LogLevel.WARNING)       # UI + CLI
+await broadcast("Critical failure", LogLevel.ERROR)         # UI + CLI
+```
+
+**Enhanced Workflow Protocol:**
+All workflows now use the enhanced `send_message` signature:
+```python
+async def enhanced_workflow(
+    send_message: Callable[[str, LogLevel], Awaitable[None]],
+    check_cancelled: Callable[[], bool]
+) -> T:
+    await send_message("Starting complex operation", LogLevel.INFO)
+    await send_message("Debug: evaluating condition X", LogLevel.DEBUG)
+    await send_message("✅ Operation completed", LogLevel.SUCCESS)
+```
+
+**Benefits:**
+- **Development**: Rich CLI debugging without cluttering UI
+- **Production**: Clean user experience with appropriate messaging
+- **Monitoring**: Structured logging for different audiences
+- **Flexibility**: Easy to add logging anywhere in the system
+
 ## 🏗️ Design Principles
 
 ### Dependency Inversion
@@ -98,25 +142,30 @@ The core module defines interfaces without depending on implementations:
 
 ## 🔄 Workflow Protocol
 
-Workflows follow a simple async function signature:
+Workflows follow a simple async function signature with enhanced logging:
 
 ```python
 from typing import Callable, Awaitable, TypeVar
+from core.types import LogLevel
 
 T = TypeVar('T')
 
 async def workflow(
-    send_message: Callable[[str], Awaitable[None]],
+    send_message: Callable[[str, LogLevel], Awaitable[None]],
     check_cancelled: Callable[[], bool]
 ) -> T:
     """
     Args:
-        send_message: Async function to send status updates
+        send_message: Async function to send status updates with log level
         check_cancelled: Function to check if cancelled
     
     Returns:
         Any data to pass to next workflow or None
     """
+    await send_message("Starting workflow", LogLevel.INFO)
+    await send_message("Debug: internal state", LogLevel.DEBUG)
+    # ... workflow logic ...
+    await send_message("Workflow completed", LogLevel.SUCCESS)
     pass
 ```
 
@@ -189,12 +238,16 @@ The core module is designed for easy testing:
 1. **Import core components**:
    ```python
    from core import ProcessController, broadcast, start_ws_server
+   from core.types import LogLevel
    ```
 
 2. **Create workflows** (in other modules):
    ```python
    async def my_workflow(send_message, check_cancelled):
+       await send_message("Starting workflow", LogLevel.INFO)
+       await send_message("Debug: processing data", LogLevel.DEBUG)
        # Implementation
+       await send_message("Workflow completed", LogLevel.SUCCESS)
        pass
    ```
 

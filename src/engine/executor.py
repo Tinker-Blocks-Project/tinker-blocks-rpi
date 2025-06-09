@@ -1,6 +1,7 @@
 """Command executor - executes the parsed command tree."""
 
 from typing import Callable, Awaitable, Union, TYPE_CHECKING
+from core.types import LogLevel
 
 from .commands import Command
 from .context import ExecutionContext, SensorInterface
@@ -14,7 +15,7 @@ class Executor:
 
     def __init__(
         self,
-        send_message: Callable[[str], Awaitable[None]] | None = None,
+        send_message: Callable[[str, LogLevel], Awaitable[None]] | None = None,
         check_cancelled: Callable[[], bool] | None = None,
         sensors: SensorInterface | None = None,
         hardware: Union["HardwareInterface", None] = None,
@@ -58,7 +59,9 @@ class Executor:
                 # Check for cancellation
                 if self.check_cancelled and self.check_cancelled():
                     if self.send_message:
-                        await self.send_message("Execution cancelled by user")
+                        await self.send_message(
+                            "Execution cancelled by user", LogLevel.WARNING
+                        )
                     break
 
                 # Execute the command
@@ -66,7 +69,7 @@ class Executor:
 
         except Exception as e:
             if self.send_message:
-                await self.send_message(f"Execution error: {str(e)}")
+                await self.send_message(f"Execution error: {str(e)}", LogLevel.ERROR)
             raise
 
         return context

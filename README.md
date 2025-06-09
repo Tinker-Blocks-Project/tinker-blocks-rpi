@@ -36,6 +36,7 @@ Foundational infrastructure and external interfaces:
 - WebSocket server for real-time communication with CLI output
 - Process controller for workflow management
 - **Car API Client**: HTTP client for ESP32 robot communication
+- **Enhanced Logging System**: Smart message routing with DEBUG/INFO/SUCCESS/WARNING/ERROR levels
 - Centralized configuration and logging
 
 ### [Vision Module](src/vision/README.md)
@@ -120,7 +121,7 @@ The WebSocket server starts on `ws://0.0.0.0:8765` with real-time console output
 
 ### Available Workflows
 
-Send JSON commands to the WebSocket server:
+Send JSON commands to the WebSocket server (with enhanced logging for debugging):
 
 ```json
 // Run complete pipeline with real hardware (OCR → Engine → Robot)
@@ -186,7 +187,7 @@ Located in `src/tests/` directory:
 ### Running Tests
 
 ```bash
-# Run all tests
+# Run all tests (with enhanced logging for debugging)
 poetry run pytest
 
 # Run with coverage
@@ -198,7 +199,7 @@ poetry run pytest src/vision/tests/            # Vision unit tests
 poetry run pytest src/engine/tests/            # Engine unit tests
 poetry run pytest src/tests/                   # E2E and integration tests
 
-# Run specific test file
+# Run specific test file with verbose debugging
 poetry run pytest src/tests/test_e2e_workflows.py -v
 
 # Run tests matching pattern
@@ -254,7 +255,7 @@ For detailed information about each module:
 - **LangChain** - AI model integration for OCR
 - **OpenAI GPT-4V/Claude** - Vision-capable AI models
 - **HTTP/REST API** - ESP32 robot communication
-- **WebSockets** - Real-time bidirectional communication  
+- **WebSockets** - Real-time bidirectional communication with smart log routing
 - **asyncio** - Asynchronous programming for concurrent operations
 - **requests** - HTTP client for robot API integration
 - **Poetry** - Dependency management and virtual environments

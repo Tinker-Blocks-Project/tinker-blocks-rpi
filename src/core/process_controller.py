@@ -1,5 +1,6 @@
 import asyncio
 from typing import Callable, Awaitable, Optional, Protocol, TypeVar, Any
+from .types import LogLevel
 
 T_co = TypeVar("T_co", covariant=True)
 T = TypeVar("T")
@@ -10,7 +11,7 @@ class WorkflowFunc(Protocol[T_co]):
 
     async def __call__(
         self,
-        send_message: Callable[[str], Awaitable[None]],
+        send_message: Callable[[str, LogLevel], Awaitable[None]],
         check_cancelled: Callable[[], bool],
     ) -> T_co: ...
 
@@ -18,7 +19,7 @@ class WorkflowFunc(Protocol[T_co]):
 class ProcessController:
     """Manages execution of workflows with cancellation support."""
 
-    def __init__(self, send_message: Callable[[str], Awaitable[None]]):
+    def __init__(self, send_message: Callable[[str, LogLevel], Awaitable[None]]):
         self.send_message = send_message
         self._current_task: Optional[asyncio.Task] = None
         self._cancelled = False
@@ -47,7 +48,7 @@ class ProcessController:
         result = None
 
         try:
-            await self.send_message(f"Starting {name}...")
+            await self.send_message(f"Starting {name}...", LogLevel.INFO)
 
             # Create task that runs the workflow
             self._current_task = asyncio.create_task(
@@ -59,10 +60,10 @@ class ProcessController:
             return True, result
 
         except asyncio.CancelledError:
-            await self.send_message(f"\n❌ {name} was cancelled")
+            await self.send_message(f"\n❌ {name} was cancelled", LogLevel.ERROR)
             return False, None
         except Exception as e:
-            await self.send_message(f"\n❌ {name} failed: {str(e)}")
+            await self.send_message(f"\n❌ {name} failed: {str(e)}", LogLevel.ERROR)
             return False, None
         finally:
             self._current_task = None

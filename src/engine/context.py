@@ -2,6 +2,7 @@
 
 from typing import Protocol, Callable, Awaitable, Any, Union, TYPE_CHECKING
 from dataclasses import dataclass, field
+from core.types import LogLevel
 
 from .types import Position, Direction, Number, SensorType
 
@@ -76,7 +77,7 @@ class ExecutionContext:
     sensors: SensorInterface = field(default_factory=MockSensors)
 
     # Callbacks
-    send_message: Callable[[str], Awaitable[None]] | None = None
+    send_message: Callable[[str, LogLevel], Awaitable[None]] | None = None
     check_cancelled: Callable[[], bool] | None = None
 
     def get_direction_vector(self) -> Position:
@@ -101,7 +102,8 @@ class ExecutionContext:
 
             if not success and self.send_message:
                 await self.send_message(
-                    f"⚠️ Hardware movement failed for distance {distance_cm}cm"
+                    f"⚠️ Hardware movement failed for distance {distance_cm}cm",
+                    LogLevel.WARNING,
                 )
 
         # Update position tracking regardless of hardware success
@@ -138,7 +140,8 @@ class ExecutionContext:
 
             if not success and self.send_message:
                 await self.send_message(
-                    f"⚠️ Hardware rotation failed for {degrees} degrees"
+                    f"⚠️ Hardware rotation failed for {degrees} degrees",
+                    LogLevel.WARNING,
                 )
 
         # Update direction tracking regardless of hardware success

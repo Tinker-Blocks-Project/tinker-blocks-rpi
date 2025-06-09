@@ -1,6 +1,7 @@
 import asyncio
 from typing import Any
 from core import start_ws_server, broadcast, set_command_processor, ProcessController
+from core.types import LogLevel
 from vision.workflow import ocr_grid_workflow
 from engine.workflow import engine_workflow
 from vision.ocr import VLM_OCR
@@ -19,7 +20,7 @@ async def handle_run_command(params: dict[str, Any] | None = None):
         return
 
     if controller.is_running:
-        await controller.send_message("Process already running!")
+        await controller.send_message("Process already running!", LogLevel.WARNING)
         return
 
     # Get workflow name
@@ -37,12 +38,14 @@ async def handle_run_command(params: dict[str, Any] | None = None):
         )
 
         if not success:
-            await controller.send_message("OCR grid workflow failed")
+            await controller.send_message("OCR grid workflow failed", LogLevel.ERROR)
             return
 
         # Check if should chain to engine workflow
         if success and params and params.get("chain_engine", False):
-            await controller.send_message("\n🔗 Chaining to engine workflow...")
+            await controller.send_message(
+                "\n🔗 Chaining to engine workflow...", LogLevel.INFO
+            )
             use_hardware = params.get("use_hardware", False)
             success, _ = await controller.run_workflow(
                 lambda send_message, check_cancelled: engine_workflow(
@@ -87,7 +90,9 @@ async def handle_run_command(params: dict[str, Any] | None = None):
         )
 
         if success and grid_data:
-            await controller.send_message("\n🔗 Proceeding to engine execution...")
+            await controller.send_message(
+                "\n🔗 Proceeding to engine execution...", LogLevel.INFO
+            )
             use_hardware = params.get("use_hardware", False) if params else False
             success, _ = await controller.run_workflow(
                 lambda send_message, check_cancelled: engine_workflow(
@@ -100,7 +105,9 @@ async def handle_run_command(params: dict[str, Any] | None = None):
             )
 
     else:
-        await controller.send_message(f"Unknown workflow: {workflow_name}")
+        await controller.send_message(
+            f"Unknown workflow: {workflow_name}", LogLevel.ERROR
+        )
 
 
 async def handle_stop_command():
@@ -110,9 +117,9 @@ async def handle_stop_command():
 
     if controller.is_running:
         controller.cancel()
-        await controller.send_message("Stopping process...")
+        await controller.send_message("Stopping process...", LogLevel.INFO)
     else:
-        await controller.send_message("No active process to stop")
+        await controller.send_message("No active process to stop", LogLevel.WARNING)
 
 
 async def process_command(command: str, params: dict[str, Any]):
@@ -126,7 +133,7 @@ async def process_command(command: str, params: dict[str, Any]):
     if handler:
         await handler()
     elif controller:
-        await controller.send_message(f"Unknown command: {command}")
+        await controller.send_message(f"Unknown command: {command}", LogLevel.ERROR)
 
 
 async def main():

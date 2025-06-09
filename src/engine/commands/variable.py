@@ -1,5 +1,6 @@
 from typing import ClassVar
 from dataclasses import dataclass
+from core.types import LogLevel
 
 from .base import Command
 from ..context import ExecutionContext
@@ -42,7 +43,8 @@ class SetCommand(Command):
         """Execute the SET command."""
         if context.send_message:
             await context.send_message(
-                f"Executing SET {self.variable_name} at {self.grid_position}"
+                f"Executing SET {self.variable_name} at {self.grid_position}",
+                LogLevel.DEBUG,
             )
 
         if not self.variable_name or not self.value_expression:
@@ -50,6 +52,12 @@ class SetCommand(Command):
 
         # Evaluate the expression
         value = await self.value_expression.evaluate(context)
+
+        if context.send_message:
+            await context.send_message(
+                f"Evaluating expression: {self.value_expression} = {value}",
+                LogLevel.DEBUG,
+            )
 
         # Convert string values to appropriate types
         if isinstance(value, str):
@@ -70,7 +78,9 @@ class SetCommand(Command):
         context.set_variable(self.variable_name, value)
 
         if context.send_message:
-            await context.send_message(f"Set {self.variable_name} = {value}")
+            await context.send_message(
+                f"Set {self.variable_name} = {value}", LogLevel.SUCCESS
+            )
 
     def __repr__(self) -> str:
         return f"SetCommand({self.variable_name} = {self.value_expression})"

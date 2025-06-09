@@ -9,11 +9,12 @@ from vision.types import Image, Grid
 from vision.grid import PerspectiveGrid
 from vision.ocr import OCRProtocol
 from core.config import config
+from core.types import LogLevel
 
 
 async def ocr_grid_workflow(
     ocr_engine: OCRProtocol,
-    send_message: Callable[[str], Awaitable[None]],
+    send_message: Callable[[str, LogLevel], Awaitable[None]],
     check_cancelled: Callable[[], bool],
 ) -> Grid:
     """
@@ -37,17 +38,17 @@ async def ocr_grid_workflow(
     if check_cancelled():
         return Grid(blocks=[])
 
-    await send_message("\n📸 Capturing image...")
+    await send_message("\n📸 Capturing image...", LogLevel.INFO)
     # In production, replace with: image_path = capture_image_client() or capture_image_local()
     image_path = "assets/oak-d_images/frame_064.png"
-    await send_message(f"Using image: {image_path}")
+    await send_message(f"Using image: {image_path}", LogLevel.DEBUG)
 
     # Step 2: Load and process image
     if check_cancelled():
         return Grid(blocks=[])
 
     processing_start_time = time.time()
-    await send_message("\n🔄 Processing image...")
+    await send_message("\n🔄 Processing image...", LogLevel.INFO)
     try:
         image = Image.from_file(image_path)
         rotated = image.rotate_90_clockwise()
@@ -62,16 +63,18 @@ async def ocr_grid_workflow(
 
         # Convert to grayscale for grid processing
         gray = rotated.to_grayscale()
-        await send_message("✓ Image rotated and converted to grayscale")
+        await send_message(
+            "✓ Image rotated and converted to grayscale", LogLevel.SUCCESS
+        )
     except Exception as e:
-        await send_message(f"❌ Image processing failed: {str(e)}")
+        await send_message(f"❌ Image processing failed: {str(e)}", LogLevel.ERROR)
         return Grid(blocks=[])
 
     # Step 3: Create perspective grid and apply transformation
     if check_cancelled():
         return Grid(blocks=[])
 
-    await send_message("\n📐 Creating perspective grid...")
+    await send_message("\n📐 Creating perspective grid...", LogLevel.INFO)
     grid = PerspectiveGrid(
         top_right=config.grid_corners["top_right"],
         top_left=config.grid_corners["top_left"],
@@ -90,7 +93,9 @@ async def ocr_grid_workflow(
     # Save the perspective-transformed image for OCR processing
     transformed_path = f"{output_folder}/transformed_grid.jpg"
     transformed_image.save(transformed_path)
-    await send_message(f"✓ Processing images saved to folder: {output_folder}/")
+    await send_message(
+        f"✓ Processing images saved to folder: {output_folder}/", LogLevel.SUCCESS
+    )
 
     processing_end_time = time.time()
     processing_time = processing_end_time - processing_start_time
@@ -100,16 +105,19 @@ async def ocr_grid_workflow(
         return Grid(blocks=[])
 
     ocr_start_time = time.time()
-    await send_message("\n🔍 Running OCR on transformed grid...")
+    await send_message("\n🔍 Running OCR on transformed grid...", LogLevel.INFO)
     try:
         # OCR engine processes the transformed image directly
         grid_result = await ocr_engine.process_image(transformed_path)
         non_empty_cells = len(
             [cell for row in grid_result.blocks for cell in row if cell.strip()]
         )
-        await send_message(f"✓ OCR completed, found {non_empty_cells} non-empty cells")
+        await send_message(
+            f"✓ OCR completed, found {non_empty_cells} non-empty cells",
+            LogLevel.SUCCESS,
+        )
     except Exception as e:
-        await send_message(f"❌ OCR failed: {str(e)}")
+        await send_message(f"❌ OCR failed: {str(e)}", LogLevel.ERROR)
         return Grid(blocks=[])
 
     ocr_end_time = time.time()
@@ -118,9 +126,9 @@ async def ocr_grid_workflow(
     total_time = total_end_time - total_start_time
 
     # Format and display final grid result
-    await send_message("✓ Grid processing complete!")
+    await send_message("✓ Grid processing complete!", LogLevel.SUCCESS)
     formatted_grid = _format_grid_for_display(grid_result)
-    await send_message(f"\n📊 Grid Result:\n{formatted_grid}")
+    await send_message(f"\n📊 Grid Result:\n{formatted_grid}", LogLevel.INFO)
 
     # Save grid result as JSON
     grid_json_path = f"{output_folder}/grid_result.json"
@@ -142,17 +150,17 @@ async def ocr_grid_workflow(
         )
 
     # Send timing information
-    await send_message("\n⏱️ Timing Summary:")
-    await send_message(f"   Processing time: {processing_time:.2f}s")
-    await send_message(f"   OCR time: {ocr_time:.2f}s")
-    await send_message(f"   Total time: {total_time:.2f}s")
+    await send_message("\n⏱️ Timing Summary:", LogLevel.INFO)
+    await send_message(f"   Processing time: {processing_time:.2f}s", LogLevel.DEBUG)
+    await send_message(f"   OCR time: {ocr_time:.2f}s", LogLevel.DEBUG)
+    await send_message(f"   Total time: {total_time:.2f}s", LogLevel.DEBUG)
 
     # Report all saved files
-    await send_message(f"\n💾 Saved files in {output_folder}/:")
-    await send_message("   - rotated_original.jpg")
-    await send_message("   - grid_overlay.jpg")
-    await send_message("   - transformed_grid.jpg")
-    await send_message("   - grid_result.json")
+    await send_message(f"\n💾 Saved files in {output_folder}/:", LogLevel.INFO)
+    await send_message("   - rotated_original.jpg", LogLevel.DEBUG)
+    await send_message("   - grid_overlay.jpg", LogLevel.DEBUG)
+    await send_message("   - transformed_grid.jpg", LogLevel.DEBUG)
+    await send_message("   - grid_result.json", LogLevel.DEBUG)
 
     return grid_result
 

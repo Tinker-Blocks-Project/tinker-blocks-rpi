@@ -1,5 +1,6 @@
 from typing import ClassVar
 from dataclasses import dataclass
+from core.types import LogLevel
 
 from .base import Command
 from ..context import ExecutionContext
@@ -19,19 +20,23 @@ class PenUpCommand(Command):
     async def execute(self, context: ExecutionContext) -> None:
         """Execute the PEN_UP command."""
         if context.send_message:
-            await context.send_message(f"Executing PEN_UP at {self.grid_position}")
+            await context.send_message(
+                f"Executing PEN_UP at {self.grid_position}", LogLevel.DEBUG
+            )
 
         # Use hardware interface if available
         if context.hardware:
             success = await context.hardware.set_pen_down(False)
             if not success and context.send_message:
-                await context.send_message("⚠️ Hardware pen control failed")
+                await context.send_message(
+                    "⚠️ Hardware pen control failed", LogLevel.WARNING
+                )
 
         context.pen_down = False
         context.increment_steps()
 
         if context.send_message:
-            await context.send_message("Pen lifted")
+            await context.send_message("Pen lifted", LogLevel.SUCCESS)
 
     def __repr__(self) -> str:
         return "PenUpCommand()"
@@ -51,13 +56,17 @@ class PenDownCommand(Command):
     async def execute(self, context: ExecutionContext) -> None:
         """Execute the PEN_DOWN command."""
         if context.send_message:
-            await context.send_message(f"Executing PEN_DOWN at {self.grid_position}")
+            await context.send_message(
+                f"Executing PEN_DOWN at {self.grid_position}", LogLevel.DEBUG
+            )
 
         # Use hardware interface if available
         if context.hardware:
             success = await context.hardware.set_pen_down(True)
             if not success and context.send_message:
-                await context.send_message("⚠️ Hardware pen control failed")
+                await context.send_message(
+                    "⚠️ Hardware pen control failed", LogLevel.WARNING
+                )
 
         context.pen_down = True
         context.increment_steps()
@@ -67,7 +76,7 @@ class PenDownCommand(Command):
             context.path.append(context.position)
 
         if context.send_message:
-            await context.send_message("Pen lowered")
+            await context.send_message("Pen lowered", LogLevel.SUCCESS)
 
     def __repr__(self) -> str:
         return "PenDownCommand()"

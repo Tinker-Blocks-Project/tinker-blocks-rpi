@@ -2,6 +2,7 @@
 
 from typing import ClassVar
 from dataclasses import dataclass, field
+from core.types import LogLevel
 
 from .base import Command
 from ..context import ExecutionContext
@@ -48,7 +49,9 @@ class LoopCommand(Command):
     async def execute(self, context: ExecutionContext) -> None:
         """Execute the LOOP command."""
         if context.send_message:
-            await context.send_message(f"Executing LOOP at {self.grid_position}")
+            await context.send_message(
+                f"Executing LOOP at {self.grid_position}", LogLevel.DEBUG
+            )
 
         if self.while_condition:
             # LOOP WHILE condition
@@ -151,13 +154,20 @@ class IfCommand(Command):
     async def execute(self, context: ExecutionContext) -> None:
         """Execute the IF command."""
         if context.send_message:
-            await context.send_message(f"Executing IF at {self.grid_position}")
+            await context.send_message(
+                f"Executing IF at {self.grid_position}", LogLevel.DEBUG
+            )
 
         if not self.condition:
             raise ValueError("IF command has no condition")
 
         # Evaluate condition
         condition_result = await self.condition.evaluate(context)
+
+        if context.send_message:
+            await context.send_message(
+                f"IF condition evaluated to: {condition_result}", LogLevel.DEBUG
+            )
 
         if condition_result:
             # Execute IF block

@@ -1,6 +1,7 @@
 from typing import ClassVar
 from dataclasses import dataclass
 import asyncio
+from core.types import LogLevel
 
 from .base import Command
 from ..context import ExecutionContext
@@ -47,7 +48,9 @@ class WaitCommand(Command):
     async def execute(self, context: ExecutionContext) -> None:
         """Execute the WAIT command."""
         if context.send_message:
-            await context.send_message(f"Executing WAIT at {self.grid_position}")
+            await context.send_message(
+                f"Executing WAIT at {self.grid_position}", LogLevel.DEBUG
+            )
 
         if self.while_condition:
             # WAIT WHILE condition
@@ -85,7 +88,9 @@ class WaitCommand(Command):
                 raise ValueError(f"Wait time must be positive, got {wait_time}")
 
             if context.send_message:
-                await context.send_message(f"Waiting for {wait_time} seconds...")
+                await context.send_message(
+                    f"Waiting for {wait_time} seconds...", LogLevel.INFO
+                )
 
             # Wait with cancellation support
             start_time = asyncio.get_event_loop().time()

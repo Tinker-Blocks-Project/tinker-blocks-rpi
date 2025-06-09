@@ -14,7 +14,7 @@ async def test_engine_workflow_with_mock_hardware():
     """Test complete engine workflow using mock hardware."""
     messages = []
 
-    async def capture_messages(msg):
+    async def capture_messages(msg, level):
         messages.append(msg)
 
     # Simple movement grid
@@ -41,7 +41,7 @@ async def test_hardware_integration_movement_tracking():
     """Test that hardware interface tracks actual movements."""
     messages = []
 
-    async def capture_messages(msg):
+    async def capture_messages(msg, level):
         messages.append(msg)
 
     # Create mock hardware

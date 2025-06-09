@@ -4,6 +4,7 @@ import asyncio
 import pytest
 from unittest.mock import patch, MagicMock, mock_open
 from core import ProcessController
+from core.types import LogLevel
 from vision.workflow import ocr_grid_workflow
 from engine.workflow import engine_workflow
 
@@ -13,7 +14,7 @@ async def test_ocr_workflow_full_execution():
     """Test OCR workflow from start to finish."""
     messages = []
 
-    async def capture_messages(msg):
+    async def capture_messages(msg, level):
         messages.append(msg)
 
     controller = ProcessController(capture_messages)
@@ -85,7 +86,7 @@ async def test_engine_workflow_execution():
     """Test engine workflow with sample grid."""
     messages = []
 
-    async def capture_messages(msg):
+    async def capture_messages(msg, level):
         messages.append(msg)
 
     controller = ProcessController(capture_messages)
@@ -138,7 +139,7 @@ async def test_full_pipeline_workflow():
     """Test complete OCR to Engine pipeline."""
     messages = []
 
-    async def capture_messages(msg):
+    async def capture_messages(msg, level):
         messages.append(msg)
 
     controller = ProcessController(capture_messages)
@@ -185,20 +186,20 @@ async def test_workflow_cancellation_propagation():
     messages = []
     cancelled = False
 
-    async def capture_messages(msg):
+    async def capture_messages(msg, level):
         messages.append(msg)
 
     async def long_workflow(send_message, check_cancelled):
         nonlocal cancelled
-        await send_message("Starting long task...")
+        await send_message("Starting long task...", LogLevel.INFO)
 
         for i in range(10):
             if check_cancelled():
                 cancelled = True
-                await send_message("Detected cancellation")
+                await send_message("Detected cancellation", LogLevel.INFO)
                 return {"cancelled": True}
 
-            await send_message(f"Step {i}")
+            await send_message(f"Step {i}", LogLevel.INFO)
             await asyncio.sleep(0.01)
 
         return {"completed": True}
@@ -229,7 +230,7 @@ async def test_workflow_with_empty_grid():
     """Test engine workflow with empty grid."""
     messages = []
 
-    async def capture_messages(msg):
+    async def capture_messages(msg, level):
         messages.append(msg)
 
     controller = ProcessController(capture_messages)

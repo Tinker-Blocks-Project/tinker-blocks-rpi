@@ -4,6 +4,7 @@ import asyncio
 import pytest
 from unittest.mock import patch
 from core import ProcessController
+from core.types import LogLevel
 from engine.workflow import engine_workflow
 from vision.workflow import ocr_grid_workflow
 
@@ -13,7 +14,7 @@ async def test_engine_with_no_grid():
     """Test engine workflow with no grid provided."""
     messages = []
 
-    async def capture_messages(msg):
+    async def capture_messages(msg, level):
         messages.append(msg)
 
     controller = ProcessController(capture_messages)
@@ -38,7 +39,7 @@ async def test_engine_with_invalid_commands():
     """Test engine workflow with invalid/unknown commands."""
     messages = []
 
-    async def capture_messages(msg):
+    async def capture_messages(msg, level):
         messages.append(msg)
 
     controller = ProcessController(capture_messages)
@@ -69,14 +70,14 @@ async def test_workflow_exception_handling():
     """Test workflow exception handling."""
     messages = []
 
-    async def capture_messages(msg):
+    async def capture_messages(msg, level):
         messages.append(msg)
 
     controller = ProcessController(capture_messages)
 
     # Workflow that throws exception
     async def failing_workflow(send_message, check_cancelled):
-        await send_message("About to fail...")
+        await send_message("About to fail...", LogLevel.INFO)
         raise RuntimeError("Catastrophic failure!")
 
     success, result = await controller.run_workflow(failing_workflow, "Exception Test")
@@ -92,28 +93,28 @@ async def test_workflow_timeout_simulation():
     messages = []
     cancelled = False
 
-    async def capture_messages(msg):
+    async def capture_messages(msg, level):
         messages.append(msg)
 
     controller = ProcessController(capture_messages)
 
     async def slow_workflow(send_message, check_cancelled):
         nonlocal cancelled
-        await send_message("Starting slow task...")
+        await send_message("Starting slow task...", LogLevel.INFO)
 
         # Simulate long running task with cancellation checks
         for i in range(100):
             if check_cancelled():
                 cancelled = True
-                await send_message("Task cancelled during execution")
+                await send_message("Task cancelled during execution", LogLevel.INFO)
                 return None
 
             if i % 10 == 0:
-                await send_message(f"Progress: {i}%")
+                await send_message(f"Progress: {i}%", LogLevel.INFO)
 
             await asyncio.sleep(0.001)  # Small delay
 
-        await send_message("Task completed!")
+        await send_message("Task completed!", LogLevel.INFO)
         return {"completed": True}
 
     # Start and quickly cancel
@@ -134,7 +135,7 @@ async def test_ocr_workflow_with_missing_image():
     """Test OCR workflow when image file is missing."""
     messages = []
 
-    async def capture_messages(msg):
+    async def capture_messages(msg, level):
         messages.append(msg)
 
     controller = ProcessController(capture_messages)
@@ -168,15 +169,15 @@ async def test_concurrent_workflow_attempts():
     """Test that controller prevents concurrent workflow execution."""
     messages = []
 
-    async def capture_messages(msg):
+    async def capture_messages(msg, level):
         messages.append(msg)
 
     controller = ProcessController(capture_messages)
 
     async def slow_workflow(send_message, check_cancelled):
-        await send_message("Slow workflow started")
+        await send_message("Slow workflow started", LogLevel.INFO)
         await asyncio.sleep(0.1)
-        await send_message("Slow workflow finished")
+        await send_message("Slow workflow finished", LogLevel.INFO)
         return {"done": True}
 
     # Start first workflow
@@ -205,7 +206,7 @@ async def test_empty_and_edge_case_grids():
     """Test engine with various edge case grids."""
     messages = []
 
-    async def capture_messages(msg):
+    async def capture_messages(msg, level):
         messages.append(msg)
 
     controller = ProcessController(capture_messages)

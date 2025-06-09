@@ -1,6 +1,7 @@
 from typing import ClassVar
 from dataclasses import dataclass
 import asyncio
+from core.types import LogLevel
 
 from .base import Command
 from ..context import ExecutionContext
@@ -50,18 +51,32 @@ class MoveCommand(Command):
     async def execute(self, context: ExecutionContext) -> None:
         """Execute the MOVE command."""
         if context.send_message:
-            await context.send_message(f"Executing MOVE at {self.grid_position}")
+            await context.send_message(
+                f"Executing MOVE at {self.grid_position}", LogLevel.DEBUG
+            )
 
         if self.while_condition:
             # MOVE WHILE condition
             step_distance = 1  # Move 1 unit at a time
+            if context.send_message:
+                await context.send_message("MOVE WHILE loop starting", LogLevel.DEBUG)
+
             while True:
                 # Check cancellation
                 if context.check_cancelled and context.check_cancelled():
+                    if context.send_message:
+                        await context.send_message(
+                            "MOVE WHILE cancelled", LogLevel.DEBUG
+                        )
                     break
 
                 # Evaluate condition
                 condition_result = await self.while_condition.evaluate(context)
+                if context.send_message:
+                    await context.send_message(
+                        f"MOVE WHILE condition: {condition_result}", LogLevel.DEBUG
+                    )
+
                 if not condition_result:
                     break
 
@@ -80,7 +95,16 @@ class MoveCommand(Command):
             if not isinstance(distance, (int, float)):
                 raise ValueError(f"Distance must be a number, got {type(distance)}")
 
+            if context.send_message:
+                await context.send_message(f"Moving {distance} units", LogLevel.INFO)
+
             await context.move(float(distance))
+
+            if context.send_message:
+                await context.send_message(
+                    f"Moved to position ({context.position.x}, {context.position.y})",
+                    LogLevel.DEBUG,
+                )
         else:
             raise ValueError("MOVE command has neither distance nor WHILE condition")
 
@@ -161,7 +185,9 @@ class TurnCommand(Command):
     async def execute(self, context: ExecutionContext) -> None:
         """Execute the TURN command."""
         if context.send_message:
-            await context.send_message(f"Executing TURN at {self.grid_position}")
+            await context.send_message(
+                f"Executing TURN at {self.grid_position}", LogLevel.DEBUG
+            )
 
         if not self.direction:
             raise ValueError("TURN command has no direction")
@@ -176,13 +202,27 @@ class TurnCommand(Command):
                 )
             step_degrees = 5 if direction_value > 0 else -5  # 5 degrees at a time
 
+            if context.send_message:
+                await context.send_message(
+                    f"TURN WHILE loop starting ({step_degrees}° steps)", LogLevel.DEBUG
+                )
+
             while True:
                 # Check cancellation
                 if context.check_cancelled and context.check_cancelled():
+                    if context.send_message:
+                        await context.send_message(
+                            "TURN WHILE cancelled", LogLevel.DEBUG
+                        )
                     break
 
                 # Evaluate condition
                 condition_result = await self.while_condition.evaluate(context)
+                if context.send_message:
+                    await context.send_message(
+                        f"TURN WHILE condition: {condition_result}", LogLevel.DEBUG
+                    )
+
                 if not condition_result:
                     break
 
@@ -200,7 +240,17 @@ class TurnCommand(Command):
             turn_degrees = await self.direction.evaluate(context)
 
             if isinstance(turn_degrees, (int, float)):
+                if context.send_message:
+                    await context.send_message(
+                        f"Turning {turn_degrees}°", LogLevel.INFO
+                    )
+
                 await context.turn(float(turn_degrees))
+
+                if context.send_message:
+                    await context.send_message(
+                        f"Now facing {context.direction.value}", LogLevel.DEBUG
+                    )
             else:
                 raise ValueError(f"Invalid turn degrees: {turn_degrees}")
 

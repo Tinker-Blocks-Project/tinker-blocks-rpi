@@ -15,7 +15,7 @@ async def test_simple_movement_sequence():
     """Test basic movement commands in sequence."""
     messages = []
 
-    async def capture_messages(msg):
+    async def capture_messages(msg, level):
         messages.append(msg)
 
     grid = [
@@ -39,7 +39,7 @@ async def test_movement_with_distances():
     """Test movement with explicit distances."""
     messages = []
 
-    async def capture_messages(msg):
+    async def capture_messages(msg, level):
         messages.append(msg)
 
     # Create grid with arguments in separate cells
@@ -68,7 +68,7 @@ async def test_turn_commands():
     """Test turn commands work correctly."""
     messages = []
 
-    async def capture_messages(msg):
+    async def capture_messages(msg, level):
         messages.append(msg)
 
     executor = Executor(capture_messages, lambda: False)
@@ -96,7 +96,7 @@ async def test_loop_with_count():
     """Test LOOP command with fixed count."""
     messages = []
 
-    async def capture_messages(msg):
+    async def capture_messages(msg, level):
         messages.append(msg)
 
     # Simple loop with nested command
@@ -117,7 +117,7 @@ async def test_loop_with_true_condition():
     """Test LOOP with TRUE condition (limited by max steps)."""
     messages = []
 
-    async def capture_messages(msg):
+    async def capture_messages(msg, level):
         messages.append(msg)
 
     # Infinite loop - will hit max steps
@@ -138,7 +138,7 @@ async def test_loop_with_false_condition():
     """Test LOOP with FALSE condition (no execution)."""
     messages = []
 
-    async def capture_messages(msg):
+    async def capture_messages(msg, level):
         messages.append(msg)
 
     grid = [
@@ -158,7 +158,7 @@ async def test_if_else_conditions():
     """Test IF/ELSE conditional execution."""
     messages = []
 
-    async def capture_messages(msg):
+    async def capture_messages(msg, level):
         messages.append(msg)
 
     # Test with TRUE condition
@@ -191,7 +191,7 @@ async def test_variable_operations():
     """Test SET command and variable usage."""
     messages = []
 
-    async def capture_messages(msg):
+    async def capture_messages(msg, level):
         messages.append(msg)
 
     grid = [
@@ -213,7 +213,7 @@ async def test_while_conditions():
     """Test WHILE modifiers on commands."""
     messages = []
 
-    async def capture_messages(msg):
+    async def capture_messages(msg, level):
         messages.append(msg)
 
     grid = [
@@ -235,7 +235,7 @@ async def test_sensor_integration():
     """Test sensor-based conditions."""
     messages = []
 
-    async def capture_messages(msg):
+    async def capture_messages(msg, level):
         messages.append(msg)
 
     parser = GridParser([])
@@ -282,7 +282,7 @@ async def test_drawing_commands():
     """Test PEN_UP and PEN_DOWN commands."""
     messages = []
 
-    async def capture_messages(msg):
+    async def capture_messages(msg, level):
         messages.append(msg)
 
     parser = GridParser([])
@@ -324,7 +324,7 @@ async def test_wait_command():
     """Test WAIT command with time and WHILE condition."""
     messages = []
 
-    async def capture_messages(msg):
+    async def capture_messages(msg, level):
         messages.append(msg)
 
     parser = GridParser([])
@@ -359,7 +359,7 @@ async def test_complex_program():
     """Test a complex program with multiple features."""
     messages = []
 
-    async def capture_messages(msg):
+    async def capture_messages(msg, level):
         messages.append(msg)
 
     # Draw a square using loops and variables
@@ -393,7 +393,7 @@ async def test_error_handling():
     """Test error handling in various scenarios."""
     messages = []
 
-    async def capture_messages(msg):
+    async def capture_messages(msg, level):
         messages.append(msg)
 
     # Test invalid command
@@ -421,7 +421,7 @@ async def test_cancellation():
     """Test that execution stops at max steps limit."""
     messages = []
 
-    async def capture_messages(msg):
+    async def capture_messages(msg, level):
         messages.append(msg)
 
     executor = Executor(capture_messages, lambda: False)
@@ -449,7 +449,7 @@ async def test_turn_with_degrees():
     """Test TURN command with custom degrees."""
     messages = []
 
-    async def capture_messages(msg):
+    async def capture_messages(msg, level):
         messages.append(msg)
 
     # Test various turn degree commands
@@ -481,7 +481,7 @@ async def test_fibonacci_sequence():
     """Test calculating Fibonacci sequence."""
     messages = []
 
-    async def capture_messages(msg):
+    async def capture_messages(msg, level):
         messages.append(msg)
 
     # Calculate first 10 Fibonacci numbers - build nested structure manually
@@ -547,7 +547,7 @@ async def test_drawing_square():
     """Test drawing a square with loops."""
     messages = []
 
-    async def capture_messages(msg):
+    async def capture_messages(msg, level):
         messages.append(msg)
 
     # Draw a square - need to manually build commands with nesting
@@ -594,7 +594,7 @@ async def test_obstacle_avoidance_simple():
     """Test simple obstacle avoidance behavior."""
     messages = []
 
-    async def capture_messages(msg):
+    async def capture_messages(msg, level):
         messages.append(msg)
 
     # Build IF/ELSE structure manually

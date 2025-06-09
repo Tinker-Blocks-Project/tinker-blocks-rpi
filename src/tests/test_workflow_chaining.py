@@ -2,6 +2,7 @@
 
 import pytest
 from core import ProcessController
+from core.types import LogLevel
 
 
 @pytest.mark.asyncio
@@ -9,19 +10,19 @@ async def test_workflow_data_passing():
     """Test that data passes correctly between chained workflows."""
     messages = []
 
-    async def capture_messages(msg):
+    async def capture_messages(msg, level):
         messages.append(msg)
 
     controller = ProcessController(capture_messages)
 
     # First workflow returns data
     async def workflow1(send_message, check_cancelled):
-        await send_message("Workflow 1 running")
+        await send_message("Workflow 1 running", LogLevel.INFO)
         return {"data": [1, 2, 3], "status": "complete"}
 
     # Second workflow uses data from first
     async def workflow2(send_message, check_cancelled, input_data=None):
-        await send_message(f"Workflow 2 received: {input_data}")
+        await send_message(f"Workflow 2 received: {input_data}", LogLevel.INFO)
         if input_data:
             return {
                 "processed": len(input_data.get("data", [])),
@@ -53,7 +54,7 @@ async def test_workflow_data_passing():
 async def test_controller_last_result():
     """Test that controller stores last result correctly."""
 
-    async def noop_message(msg: str):
+    async def noop_message(msg: str, level):
         pass
 
     controller = ProcessController(noop_message)
@@ -87,7 +88,7 @@ async def test_conditional_workflow_chaining():
     """Test conditional chaining based on workflow results."""
     messages = []
 
-    async def capture_messages(msg):
+    async def capture_messages(msg, level):
         messages.append(msg)
 
     controller = ProcessController(capture_messages)
@@ -95,10 +96,10 @@ async def test_conditional_workflow_chaining():
     # Workflow that can succeed or fail based on input
     async def conditional_workflow(send_message, check_cancelled, should_succeed=True):
         if should_succeed:
-            await send_message("Success path")
+            await send_message("Success path", LogLevel.INFO)
             return {"status": "success", "value": 42}
         else:
-            await send_message("Failure path")
+            await send_message("Failure path", LogLevel.INFO)
             raise ValueError("Intentional failure")
 
     # Success case - should chain
@@ -112,7 +113,7 @@ async def test_conditional_workflow_chaining():
     if success1 and result1 and result1.get("status") == "success":
         # Chain to next workflow
         async def followup_workflow(send_message, check_cancelled):
-            await send_message("Following up on success")
+            await send_message("Following up on success", LogLevel.INFO)
             return {"followup": True}
 
         success2, result2 = await controller.run_workflow(followup_workflow, "Followup")
@@ -138,25 +139,25 @@ async def test_multi_stage_pipeline():
     """Test a multi-stage processing pipeline."""
     messages = []
 
-    async def capture_messages(msg):
+    async def capture_messages(msg, level):
         messages.append(msg)
 
     controller = ProcessController(capture_messages)
 
     # Stage 1: Generate data
     async def stage1(send_message, check_cancelled):
-        await send_message("Stage 1: Generating data")
+        await send_message("Stage 1: Generating data", LogLevel.INFO)
         return {"numbers": [1, 2, 3, 4, 5]}
 
     # Stage 2: Transform data
     async def stage2(send_message, check_cancelled, input_data):
-        await send_message("Stage 2: Transforming data")
+        await send_message("Stage 2: Transforming data", LogLevel.INFO)
         numbers = input_data.get("numbers", [])
         return {"doubled": [n * 2 for n in numbers]}
 
     # Stage 3: Aggregate results
     async def stage3(send_message, check_cancelled, input_data):
-        await send_message("Stage 3: Aggregating results")
+        await send_message("Stage 3: Aggregating results", LogLevel.INFO)
         doubled = input_data.get("doubled", [])
         return {"sum": sum(doubled), "count": len(doubled)}
 

@@ -1,6 +1,7 @@
 import json
 import websockets
 from typing import Callable, Awaitable
+from .types import LogLevel
 
 connected_clients = set()
 _command_processor: Callable[[str, dict], Awaitable[None]] | None = None
@@ -12,19 +13,25 @@ def set_command_processor(processor: Callable[[str, dict], Awaitable[None]]):
     _command_processor = processor
 
 
-async def broadcast(message: str, debug: bool = True):
-    """Broadcast a message to all connected clients and print to console."""
-    # Print to console for CLI visibility
-    if debug:
-        print(message)
+async def broadcast(message: str, level: LogLevel = LogLevel.INFO):
+    """Broadcast a message to all connected clients and optionally print to console.
 
-    # Create list copy to avoid modification during iteration
-    for client in list(connected_clients):
-        try:
-            await client.send(json.dumps({"message": message}))
-        except Exception as e:
-            print(f"Error sending message to client: {e}")
-            connected_clients.discard(client)
+    Args:
+        message: The message to send
+        level: Log level - DEBUG goes to CLI only, others go to both UI and CLI
+    """
+    # Always print to console for CLI visibility
+    print(message)
+
+    # Send to UI clients unless it's DEBUG level
+    if level != LogLevel.DEBUG:
+        # Create list copy to avoid modification during iteration
+        for client in list(connected_clients):
+            try:
+                await client.send(json.dumps({"message": message}))
+            except Exception as e:
+                print(f"Error sending message to client: {e}")
+                connected_clients.discard(client)
 
 
 async def handler(websocket):

@@ -9,8 +9,8 @@ async def test_ocr_grid_workflow_cancellation():
     """Test that workflow respects cancellation."""
     messages = []
 
-    async def mock_send(msg):
-        messages.append(msg)
+    async def mock_send(message, level):
+        messages.append(message)
 
     # Simulate cancellation after first message
     cancel_count = 0
@@ -39,8 +39,8 @@ async def test_ocr_grid_workflow_messages():
     """Test that workflow sends appropriate status messages."""
     messages = []
 
-    async def mock_send(msg):
-        messages.append(msg)
+    async def mock_send(message, level):
+        messages.append(message)
 
     def never_cancelled():
         return False
