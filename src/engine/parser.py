@@ -3,6 +3,7 @@ from typing import cast
 
 from .types import GridPosition
 from .commands import Command, CommandRegistry, IfCommand, ElseCommand
+from .mappings import preprocess_grid
 
 
 @dataclass
@@ -32,9 +33,10 @@ class GridParser:
         Args:
             grid: 2D list of strings representing the programming blocks
         """
-        self.grid = grid
-        self.rows = len(grid)
-        self.cols = len(grid[0]) if grid else 0
+        # Apply command mappings preprocessing before parsing
+        self.grid = preprocess_grid(grid)
+        self.rows = len(self.grid)
+        self.cols = len(self.grid[0]) if self.grid else 0
 
     def parse(self) -> list[Command]:
         """Parse the grid into a list of commands with proper nesting based on indentation.

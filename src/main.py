@@ -162,6 +162,7 @@ async def main():
     print(
         '  {"command": "run", "params": {"workflow": "engine", "use_hardware": true, "grid": [["MOVE", "10"], ["TURN", "RIGHT"]]}}'
     )
+    print('  {"command": "stop"}')
 
     await server.wait_closed()
 

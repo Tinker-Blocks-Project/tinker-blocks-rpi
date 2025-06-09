@@ -36,6 +36,13 @@ from .types import (
     Position,
     GridPosition,
 )
+from .mappings import (
+    COMMAND_MAPPINGS,
+    preprocess_grid,
+    add_mapping,
+    get_mappings,
+    remove_mapping,
+)
 
 __all__ = [
     # Workflow
@@ -80,4 +87,10 @@ __all__ = [
     "OperatorType",
     "Position",
     "GridPosition",
+    # Mappings
+    "COMMAND_MAPPINGS",
+    "preprocess_grid",
+    "add_mapping",
+    "get_mappings",
+    "remove_mapping",
 ]
