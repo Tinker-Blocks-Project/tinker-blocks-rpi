@@ -2,11 +2,14 @@
 
 from dataclasses import dataclass
 from typing import Any
+import logging
 from core.types import LogLevel
 
 from .base import Value, ValueParser
 from ..types import Number, OperatorType
 from ..context import ExecutionContext
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -206,6 +209,15 @@ class ExpressionParser:
         if not tokens:
             return None
 
+        logger.debug(f"🧮 ExpressionParser.parse_tokens() input: {tokens}")
+
+        # Debug individual token parsing
+        for i, token in enumerate(tokens):
+            parsed = ValueParser.parse(token)
+            logger.debug(
+                f"   Token[{i}]: '{token}' → {parsed} ({type(parsed).__name__ if parsed else 'None'})"
+            )
+
         # Single token - try to parse as value
         if len(tokens) == 1:
             return ValueParser.parse(tokens[0])
@@ -256,4 +268,16 @@ class ExpressionParser:
                 return Expression(operand, OperatorType.NOT)
 
         # Try to parse the whole thing as a value
-        return ValueParser.parse(" ".join(tokens))
+        result = ValueParser.parse(" ".join(tokens))
+
+        if result is None:
+            logger.warning(f"🧮 ExpressionParser failed to parse tokens: {tokens}")
+            logger.warning(
+                f"   ↳ Attempted to parse as single value: '{' '.join(tokens)}'"
+            )
+        else:
+            logger.debug(
+                f"🧮 ExpressionParser successfully parsed as single value: {result}"
+            )
+
+        return result

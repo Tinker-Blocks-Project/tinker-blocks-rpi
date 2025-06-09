@@ -59,8 +59,13 @@ class ValueParser:
         if token_upper in ("DISTANCE", "OBSTACLE", "BLACK_DETECTED", "BLACK_LOST"):
             return SensorValue(token_upper)
 
-        # Variable values - any alphabetic string that's not a command
-        if token.isalpha():
+        # Variable values - any valid identifier that's not a command
+        # Allow alphanumeric characters and underscores, but must start with letter or underscore
+        if (
+            token
+            and (token[0].isalpha() or token[0] == "_")
+            and all(c.isalnum() or c == "_" for c in token)
+        ):
             return VariableValue(token_upper)
 
         # Not a recognized value

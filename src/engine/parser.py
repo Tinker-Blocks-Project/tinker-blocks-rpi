@@ -125,14 +125,17 @@ class GridParser:
 
             # Add to parent or top level
             if stack and first_col > stack[-1][0]:
-                # This is nested under the previous command
-                if in_else_block and else_if_command:
-                    # Add to IF's else commands
-                    else_if_command.add_else_command(command)
+                # This is nested under the previous command on the stack
+                parent = stack[-1][1]
+                if isinstance(parent, ElseCommand):
+                    # We're in an ELSE block - add to the IF's else commands
+                    if in_else_block and else_if_command:
+                        else_if_command.add_else_command(command)
                 else:
-                    parent = stack[-1][1]
-                    if not isinstance(parent, ElseCommand):
-                        parent.add_nested_command(command)
+                    parent.add_nested_command(command)
+            elif in_else_block and else_if_command and stack:
+                # We're at the same level in an ELSE block - add to the IF's else commands
+                else_if_command.add_else_command(command)
             else:
                 # Top-level command
                 commands.append(command)
