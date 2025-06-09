@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from core.types import LogLevel
 
 from .base import Value
 from ..types import Number, SensorType
@@ -12,6 +13,10 @@ class NumberValue(Value):
     value: Number
 
     async def evaluate(self, context: ExecutionContext) -> Number:
+        if context.send_message:
+            await context.send_message(
+                f"🔢 NumberValue.evaluate() → {self.value}", LogLevel.DEBUG
+            )
         return self.value
 
     def __repr__(self) -> str:
@@ -25,6 +30,10 @@ class BooleanValue(Value):
     value: bool
 
     async def evaluate(self, context: ExecutionContext) -> bool:
+        if context.send_message:
+            await context.send_message(
+                f"🔘 BooleanValue.evaluate() → {self.value}", LogLevel.DEBUG
+            )
         return self.value
 
     def __repr__(self) -> str:
@@ -38,7 +47,12 @@ class VariableValue(Value):
     name: str
 
     async def evaluate(self, context: ExecutionContext) -> Number | bool:
-        return context.get_variable(self.name)
+        value = context.get_variable(self.name)
+        if context.send_message:
+            await context.send_message(
+                f"📦 VariableValue.evaluate({self.name}) → {value}", LogLevel.DEBUG
+            )
+        return value
 
     def __repr__(self) -> str:
         return f"VariableValue({self.name})"
@@ -60,7 +74,13 @@ class SensorValue(Value):
 
         sensor_type = sensor_map.get(self.sensor_name.upper())
         if sensor_type:
-            return await context.get_sensor_value(sensor_type)
+            value = await context.get_sensor_value(sensor_type)
+            if context.send_message:
+                await context.send_message(
+                    f"🔍 SensorValue.evaluate({self.sensor_name}) → {value}",
+                    LogLevel.DEBUG,
+                )
+            return value
 
         raise ValueError(f"Unknown sensor: {self.sensor_name}")
 
@@ -77,11 +97,19 @@ class DirectionValue(Value):
     async def evaluate(self, context: ExecutionContext) -> str | Number:
         # For turns, LEFT and RIGHT map to degrees
         if self.direction_name == "LEFT":
-            return -90
+            value = -90
         elif self.direction_name == "RIGHT":
-            return 90
-        # For other uses, return the direction name
-        return self.direction_name
+            value = 90
+        else:
+            # For other uses, return the direction name
+            value = self.direction_name
+
+        if context.send_message:
+            await context.send_message(
+                f"🧭 DirectionValue.evaluate({self.direction_name}) → {value}",
+                LogLevel.DEBUG,
+            )
+        return value
 
     def __repr__(self) -> str:
         return f"DirectionValue({self.direction_name})"

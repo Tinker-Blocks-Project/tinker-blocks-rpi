@@ -60,7 +60,17 @@ class WaitCommand(Command):
                     break
 
                 # Evaluate condition
+                if context.send_message:
+                    await context.send_message(
+                        f"⚙️ WAIT WHILE evaluating condition: {self.while_condition}",
+                        LogLevel.DEBUG,
+                    )
                 condition_result = await self.while_condition.evaluate(context)
+                if context.send_message:
+                    await context.send_message(
+                        f"🔍 WAIT WHILE condition result: {condition_result}",
+                        LogLevel.DEBUG,
+                    )
                 if not condition_result:
                     break
 
@@ -76,6 +86,10 @@ class WaitCommand(Command):
 
         elif self.time_value:
             # Regular WAIT with time
+            if context.send_message:
+                await context.send_message(
+                    f"⚙️ WAIT evaluating time: {self.time_value}", LogLevel.DEBUG
+                )
             time_seconds = await self.time_value.evaluate(context)
 
             if not isinstance(time_seconds, (int, float)):
@@ -89,7 +103,7 @@ class WaitCommand(Command):
 
             if context.send_message:
                 await context.send_message(
-                    f"Waiting for {wait_time} seconds...", LogLevel.INFO
+                    f"⏱️ Waiting for {wait_time} seconds...", LogLevel.INFO
                 )
 
             # Wait with cancellation support

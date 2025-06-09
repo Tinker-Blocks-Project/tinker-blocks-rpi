@@ -94,10 +94,20 @@ class ExecutionContext:
 
     async def move(self, distance: float):
         """Move the car by the given distance in current direction."""
+        if self.send_message:
+            await self.send_message(
+                f"🚗 Context.move() called with distance={distance}, current_pos=({self.position.x}, {self.position.y}), direction={self.direction.value}",
+                LogLevel.DEBUG,
+            )
+
         # Use hardware interface if available
         if self.hardware:
             # Convert logical distance to real-world distance in cm
             distance_cm = distance * 10  # 1 logical unit = 10cm
+            if self.send_message:
+                await self.send_message(
+                    f"🔧 Hardware move: {distance_cm}cm", LogLevel.DEBUG
+                )
             success = await self.hardware.move_distance(distance_cm)
 
             if not success and self.send_message:
@@ -128,14 +138,27 @@ class ExecutionContext:
         if self.pen_down:
             self.path.append(self.position)
             self.path.append(new_position)
+            if self.send_message:
+                await self.send_message(
+                    f"✏️ Drawing path segment: ({self.position.x}, {self.position.y}) → ({new_position.x}, {new_position.y})",
+                    LogLevel.DEBUG,
+                )
 
         self.position = new_position
         self.steps_executed += 1
 
     async def turn(self, degrees: float):
         """Turn the car by the given degrees (positive = right, negative = left)."""
+        if self.send_message:
+            await self.send_message(
+                f"🔄 Context.turn() called with degrees={degrees}, current_direction={self.direction.value}",
+                LogLevel.DEBUG,
+            )
+
         # Use hardware interface if available
         if self.hardware:
+            if self.send_message:
+                await self.send_message(f"🔧 Hardware turn: {degrees}°", LogLevel.DEBUG)
             success = await self.hardware.rotate_degrees(degrees)
 
             if not success and self.send_message:
@@ -183,10 +206,21 @@ class ExecutionContext:
 
         self.steps_executed += 1
 
-    def set_variable(self, name: str, value: Number | bool):
+    async def set_variable(self, name: str, value: Number | bool):
         """Set a variable value."""
+        old_value = self.variables.get(name, None)
         self.variables[name] = value
         self.steps_executed += 1
+
+        if self.send_message:
+            if old_value is not None:
+                await self.send_message(
+                    f"📝 Variable {name}: {old_value} → {value}", LogLevel.DEBUG
+                )
+            else:
+                await self.send_message(
+                    f"📝 Variable {name} = {value} (new)", LogLevel.DEBUG
+                )
 
     def get_variable(self, name: str) -> Number | bool:
         """Get a variable value, defaulting to 0 if not set."""
@@ -197,24 +231,33 @@ class ExecutionContext:
         # Use hardware interface if available, otherwise fall back to legacy sensors
         if self.hardware:
             if sensor_type == SensorType.DISTANCE:
-                return await self.hardware.get_distance_cm()
+                value = await self.hardware.get_distance_cm()
             elif sensor_type == SensorType.OBSTACLE:
-                return await self.hardware.is_obstacle_detected()
+                value = await self.hardware.is_obstacle_detected()
             elif sensor_type == SensorType.BLACK_DETECTED:
-                return await self.hardware.is_black_detected()
+                value = await self.hardware.is_black_detected()
             elif sensor_type == SensorType.BLACK_LOST:
-                return not await self.hardware.is_black_detected()
+                value = not await self.hardware.is_black_detected()
+            else:
+                value = 0
         else:
             # Fall back to legacy sensor interface
             if sensor_type == SensorType.DISTANCE:
-                return await self.sensors.get_distance()
+                value = await self.sensors.get_distance()
             elif sensor_type == SensorType.OBSTACLE:
-                return await self.sensors.is_obstacle_detected()
+                value = await self.sensors.is_obstacle_detected()
             elif sensor_type == SensorType.BLACK_DETECTED:
-                return await self.sensors.is_black_detected()
+                value = await self.sensors.is_black_detected()
             elif sensor_type == SensorType.BLACK_LOST:
-                return await self.sensors.is_black_lost()
-        return 0
+                value = await self.sensors.is_black_lost()
+            else:
+                value = 0
+
+        if self.send_message:
+            await self.send_message(
+                f"📡 Sensor {sensor_type.value} reading: {value}", LogLevel.DEBUG
+            )
+        return value
 
     def increment_steps(self):
         """Increment step counter and check for runaway execution."""

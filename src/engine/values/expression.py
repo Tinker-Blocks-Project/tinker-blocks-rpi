@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from typing import Any
+from core.types import LogLevel
 
 from .base import Value, ValueParser
 from ..types import Number, OperatorType
@@ -18,13 +19,32 @@ class Expression(Value):
 
     async def evaluate(self, context: ExecutionContext) -> Number | bool:
         """Evaluate the expression."""
+        if context.send_message:
+            await context.send_message(
+                f"🧮 Expression.evaluate() starting: {self}", LogLevel.DEBUG
+            )
+
         # Evaluate operands
         left_val = await self.left.evaluate(context)
+        if context.send_message:
+            await context.send_message(
+                f"   ↳ Left operand: {self.left} → {left_val}", LogLevel.DEBUG
+            )
+
         right_val = await self.right.evaluate(context) if self.right else None
+        if self.right and context.send_message:
+            await context.send_message(
+                f"   ↳ Right operand: {self.right} → {right_val}", LogLevel.DEBUG
+            )
 
         # Unary operators
         if self.operator == OperatorType.NOT:
-            return not bool(left_val)
+            result = not bool(left_val)
+            if context.send_message:
+                await context.send_message(
+                    f"   ↳ NOT {left_val} = {result}", LogLevel.DEBUG
+                )
+            return result
 
         # Binary operators require right operand
         if right_val is None:
@@ -42,15 +62,35 @@ class Expression(Value):
             right_num = self._to_number(right_val)
 
             if self.operator == OperatorType.ADD:
-                return left_num + right_num
+                result = left_num + right_num
+                if context.send_message:
+                    await context.send_message(
+                        f"   ↳ {left_num} + {right_num} = {result}", LogLevel.DEBUG
+                    )
+                return result
             elif self.operator == OperatorType.SUBTRACT:
-                return left_num - right_num
+                result = left_num - right_num
+                if context.send_message:
+                    await context.send_message(
+                        f"   ↳ {left_num} - {right_num} = {result}", LogLevel.DEBUG
+                    )
+                return result
             elif self.operator == OperatorType.MULTIPLY:
-                return left_num * right_num
+                result = left_num * right_num
+                if context.send_message:
+                    await context.send_message(
+                        f"   ↳ {left_num} * {right_num} = {result}", LogLevel.DEBUG
+                    )
+                return result
             elif self.operator == OperatorType.DIVIDE:
                 if right_num == 0:
                     raise ValueError("Division by zero")
-                return left_num / right_num
+                result = left_num / right_num
+                if context.send_message:
+                    await context.send_message(
+                        f"   ↳ {left_num} / {right_num} = {result}", LogLevel.DEBUG
+                    )
+                return result
 
         # Comparison operators - work with numeric values
         elif self.operator in (
@@ -63,25 +103,65 @@ class Expression(Value):
             right_num = self._to_number(right_val)
 
             if self.operator == OperatorType.LESS_THAN:
-                return left_num < right_num
+                result = left_num < right_num
+                if context.send_message:
+                    await context.send_message(
+                        f"   ↳ {left_num} < {right_num} = {result}", LogLevel.DEBUG
+                    )
+                return result
             elif self.operator == OperatorType.LESS_EQUAL:
-                return left_num <= right_num
+                result = left_num <= right_num
+                if context.send_message:
+                    await context.send_message(
+                        f"   ↳ {left_num} <= {right_num} = {result}", LogLevel.DEBUG
+                    )
+                return result
             elif self.operator == OperatorType.GREATER_THAN:
-                return left_num > right_num
+                result = left_num > right_num
+                if context.send_message:
+                    await context.send_message(
+                        f"   ↳ {left_num} > {right_num} = {result}", LogLevel.DEBUG
+                    )
+                return result
             elif self.operator == OperatorType.GREATER_EQUAL:
-                return left_num >= right_num
+                result = left_num >= right_num
+                if context.send_message:
+                    await context.send_message(
+                        f"   ↳ {left_num} >= {right_num} = {result}", LogLevel.DEBUG
+                    )
+                return result
 
         # Equality operators - work with any type
         elif self.operator == OperatorType.EQUAL:
-            return left_val == right_val
+            result = left_val == right_val
+            if context.send_message:
+                await context.send_message(
+                    f"   ↳ {left_val} = {right_val} → {result}", LogLevel.DEBUG
+                )
+            return result
         elif self.operator == OperatorType.NOT_EQUAL:
-            return left_val != right_val
+            result = left_val != right_val
+            if context.send_message:
+                await context.send_message(
+                    f"   ↳ {left_val} != {right_val} → {result}", LogLevel.DEBUG
+                )
+            return result
 
         # Logical operators
         elif self.operator == OperatorType.AND:
-            return bool(left_val) and bool(right_val)
+            result = bool(left_val) and bool(right_val)
+            if context.send_message:
+                await context.send_message(
+                    f"   ↳ {left_val} AND {right_val} → {result}", LogLevel.DEBUG
+                )
+            return result
         elif self.operator == OperatorType.OR:
-            return bool(left_val) or bool(right_val)
+            result = bool(left_val) or bool(right_val)
+            if context.send_message:
+                await context.send_message(
+                    f"   ↳ {left_val} OR {right_val} → {result}", LogLevel.DEBUG
+                )
+            return result
 
         raise ValueError(f"Unknown operator: {self.operator}")
 

@@ -61,7 +61,17 @@ class LoopCommand(Command):
                     break
 
                 # Evaluate condition
+                if context.send_message:
+                    await context.send_message(
+                        f"⚙️ LOOP WHILE evaluating condition: {self.while_condition}",
+                        LogLevel.DEBUG,
+                    )
                 condition_result = await self.while_condition.evaluate(context)
+                if context.send_message:
+                    await context.send_message(
+                        f"🔍 LOOP WHILE condition result: {condition_result}",
+                        LogLevel.DEBUG,
+                    )
                 if not condition_result:
                     break
 
@@ -77,7 +87,15 @@ class LoopCommand(Command):
 
         elif self.count_value:
             # Regular LOOP with count
+            if context.send_message:
+                await context.send_message(
+                    f"⚙️ LOOP evaluating count: {self.count_value}", LogLevel.DEBUG
+                )
             count = await self.count_value.evaluate(context)
+            if context.send_message:
+                await context.send_message(
+                    f"🔢 LOOP count evaluated to: {count}", LogLevel.DEBUG
+                )
 
             # Handle TRUE/FALSE for infinite/no loop
             if isinstance(count, bool):
@@ -162,11 +180,15 @@ class IfCommand(Command):
             raise ValueError("IF command has no condition")
 
         # Evaluate condition
+        if context.send_message:
+            await context.send_message(
+                f"⚙️ IF evaluating condition: {self.condition}", LogLevel.DEBUG
+            )
         condition_result = await self.condition.evaluate(context)
 
         if context.send_message:
             await context.send_message(
-                f"IF condition evaluated to: {condition_result}", LogLevel.DEBUG
+                f"🔍 IF condition result: {condition_result}", LogLevel.DEBUG
             )
 
         if condition_result:

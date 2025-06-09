@@ -36,7 +36,9 @@ class PenUpCommand(Command):
         context.increment_steps()
 
         if context.send_message:
-            await context.send_message("Pen lifted", LogLevel.SUCCESS)
+            await context.send_message(
+                "✏️ Pen lifted (drawing disabled)", LogLevel.SUCCESS
+            )
 
     def __repr__(self) -> str:
         return "PenUpCommand()"
@@ -76,7 +78,9 @@ class PenDownCommand(Command):
             context.path.append(context.position)
 
         if context.send_message:
-            await context.send_message("Pen lowered", LogLevel.SUCCESS)
+            await context.send_message(
+                "✏️ Pen lowered (drawing enabled)", LogLevel.SUCCESS
+            )
 
     def __repr__(self) -> str:
         return "PenDownCommand()"

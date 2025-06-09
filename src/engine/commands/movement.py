@@ -71,10 +71,16 @@ class MoveCommand(Command):
                     break
 
                 # Evaluate condition
+                if context.send_message:
+                    await context.send_message(
+                        f"⚙️ MOVE WHILE evaluating condition: {self.while_condition}",
+                        LogLevel.DEBUG,
+                    )
                 condition_result = await self.while_condition.evaluate(context)
                 if context.send_message:
                     await context.send_message(
-                        f"MOVE WHILE condition: {condition_result}", LogLevel.DEBUG
+                        f"🔍 MOVE WHILE condition result: {condition_result}",
+                        LogLevel.DEBUG,
                     )
 
                 if not condition_result:
@@ -91,18 +97,23 @@ class MoveCommand(Command):
                     raise RuntimeError("Maximum steps exceeded")
         elif self.distance_value:
             # Regular MOVE with distance
+            if context.send_message:
+                await context.send_message(
+                    f"⚙️ MOVE evaluating distance: {self.distance_value}", LogLevel.DEBUG
+                )
+
             distance = await self.distance_value.evaluate(context)
             if not isinstance(distance, (int, float)):
                 raise ValueError(f"Distance must be a number, got {type(distance)}")
 
             if context.send_message:
-                await context.send_message(f"Moving {distance} units", LogLevel.INFO)
+                await context.send_message(f"🚗 Moving {distance} units", LogLevel.INFO)
 
             await context.move(float(distance))
 
             if context.send_message:
                 await context.send_message(
-                    f"Moved to position ({context.position.x}, {context.position.y})",
+                    f"📍 Moved to position ({context.position.x}, {context.position.y}), direction: {context.direction.value}",
                     LogLevel.DEBUG,
                 )
         else:
@@ -217,10 +228,16 @@ class TurnCommand(Command):
                     break
 
                 # Evaluate condition
+                if context.send_message:
+                    await context.send_message(
+                        f"⚙️ TURN WHILE evaluating condition: {self.while_condition}",
+                        LogLevel.DEBUG,
+                    )
                 condition_result = await self.while_condition.evaluate(context)
                 if context.send_message:
                     await context.send_message(
-                        f"TURN WHILE condition: {condition_result}", LogLevel.DEBUG
+                        f"🔍 TURN WHILE condition result: {condition_result}",
+                        LogLevel.DEBUG,
                     )
 
                 if not condition_result:
@@ -237,19 +254,24 @@ class TurnCommand(Command):
                     raise RuntimeError("Maximum steps exceeded")
         else:
             # Regular TURN with direction
+            if context.send_message:
+                await context.send_message(
+                    f"⚙️ TURN evaluating direction: {self.direction}", LogLevel.DEBUG
+                )
+
             turn_degrees = await self.direction.evaluate(context)
 
             if isinstance(turn_degrees, (int, float)):
                 if context.send_message:
                     await context.send_message(
-                        f"Turning {turn_degrees}°", LogLevel.INFO
+                        f"🔄 Turning {turn_degrees}°", LogLevel.INFO
                     )
 
                 await context.turn(float(turn_degrees))
 
                 if context.send_message:
                     await context.send_message(
-                        f"Now facing {context.direction.value}", LogLevel.DEBUG
+                        f"🧭 Now facing {context.direction.value}", LogLevel.DEBUG
                     )
             else:
                 raise ValueError(f"Invalid turn degrees: {turn_degrees}")

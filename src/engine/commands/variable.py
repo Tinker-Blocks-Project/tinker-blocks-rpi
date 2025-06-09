@@ -51,11 +51,15 @@ class SetCommand(Command):
             raise ValueError("SET command missing variable name or value")
 
         # Evaluate the expression
+        if context.send_message:
+            await context.send_message(
+                f"⚙️ SET evaluating expression: {self.value_expression}", LogLevel.DEBUG
+            )
         value = await self.value_expression.evaluate(context)
 
         if context.send_message:
             await context.send_message(
-                f"Evaluating expression: {self.value_expression} = {value}",
+                f"🔍 SET expression result: {value} (type: {type(value).__name__})",
                 LogLevel.DEBUG,
             )
 
@@ -75,11 +79,11 @@ class SetCommand(Command):
             )
 
         # Set the variable
-        context.set_variable(self.variable_name, value)
+        await context.set_variable(self.variable_name, value)
 
         if context.send_message:
             await context.send_message(
-                f"Set {self.variable_name} = {value}", LogLevel.SUCCESS
+                f"✅ SET complete: {self.variable_name} = {value}", LogLevel.SUCCESS
             )
 
     def __repr__(self) -> str:
