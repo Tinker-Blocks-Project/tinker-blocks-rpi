@@ -210,6 +210,18 @@ class CarAPIClient:
         """Calibrate the gyroscope."""
         return await self.get_gyro_data("calibrate")
 
+    async def buzzer_control(self, action: str) -> CarResponse:
+        """Control the buzzer.
+
+        Args:
+            action: "on" or "off"
+
+        Returns:
+            CarResponse with buzzer control result
+        """
+        data: Dict[str, Union[str, int, float, bool]] = {"action": action}
+        return await self._post("/api/buzzer", data)
+
 
 class MockCarAPIClient(CarAPIClient):
     """Mock implementation of CarAPIClient for testing."""
@@ -219,6 +231,7 @@ class MockCarAPIClient(CarAPIClient):
         self.distance_reading = 50.0
         self.black_detected = False
         self.pen_position = "up"
+        self.buzzer_status = "off"
 
     async def _post(
         self, endpoint: str, data: Dict[str, Union[str, int, float, bool]]
@@ -294,5 +307,16 @@ class MockCarAPIClient(CarAPIClient):
                 )
             else:
                 return CarResponse(success=True, result="Gyro calibrated")
+
+        elif endpoint == "/api/buzzer":
+            action = data.get("action")
+            if action in ["on", "off"]:
+                self.buzzer_status = str(action)
+                result = "started" if action == "on" else "stopped"
+                return CarResponse(success=True, result=result)
+            else:
+                return CarResponse(
+                    success=False, error=f"Invalid buzzer action: {action}"
+                )
 
         return CarResponse(success=False, error=f"Unknown endpoint: {endpoint}")

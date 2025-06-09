@@ -4,6 +4,7 @@ from .control import LoopCommand, IfCommand, ElseCommand
 from .variable import SetCommand
 from .drawing import PenUpCommand, PenDownCommand
 from .utility import WaitCommand
+from .alert import AlertOnCommand, AlertOffCommand
 
 __all__ = [
     "Command",
@@ -17,6 +18,8 @@ __all__ = [
     "PenUpCommand",
     "PenDownCommand",
     "WaitCommand",
+    "AlertOnCommand",
+    "AlertOffCommand",
 ]
 
 # Register all commands
@@ -29,3 +32,5 @@ CommandRegistry.register(SetCommand)
 CommandRegistry.register(PenUpCommand)
 CommandRegistry.register(PenDownCommand)
 CommandRegistry.register(WaitCommand)
+CommandRegistry.register(AlertOnCommand)
+CommandRegistry.register(AlertOffCommand)

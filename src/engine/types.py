@@ -24,6 +24,8 @@ class CommandType(Enum):
 
     # Utility
     WAIT = auto()
+    ALERT_ON = auto()
+    ALERT_OFF = auto()
 
 
 class Direction(Enum):

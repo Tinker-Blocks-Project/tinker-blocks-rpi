@@ -175,6 +175,23 @@ WAIT | 0.5                      # Wait half second
 WAIT | WHILE | DISTANCE < 20    # Wait while too close
 ```
 
+#### ALERT_ON / ALERT_OFF
+Controls the buzzer.
+
+**Syntax**: `ALERT_ON` or `ALERT_OFF`
+
+**Examples**:
+```
+ALERT_ON                        # Turn alert on
+WAIT | 2                        # Wait 2 seconds  
+ALERT_OFF                       # Turn alert off
+
+IF | OBSTACLE
+    ALERT_ON                    # Sound alert
+    TURN | RIGHT
+    ALERT_OFF
+```
+
 ## Value Types
 
 ### Numbers
@@ -325,6 +342,19 @@ LOOP | TRUE
         TURN | RIGHT
 ```
 
+### Alert System
+```
+LOOP | TRUE
+    IF | OBSTACLE
+        ALERT_ON
+        WAIT | 0.5
+        ALERT_OFF
+        WAIT | 0.5
+        TURN | RIGHT
+    ELSE
+        MOVE | 1
+```
+
 ## Error Handling
 
 ### Parse Errors
@@ -378,6 +408,7 @@ The engine includes comprehensive end-to-end tests covering:
 - Expression evaluation
 - Sensor integration
 - Drawing commands
+- Alert control
 - Error conditions
 - Complex programs
 

@@ -71,6 +71,17 @@ class HardwareInterface(Protocol):
         """
         ...
 
+    async def control_buzzer(self, action: str) -> bool:
+        """Control the buzzer.
+
+        Args:
+            action: "on" or "off"
+
+        Returns:
+            True if buzzer control was successful
+        """
+        ...
+
 
 class CarHardware:
     """Real hardware implementation using CarAPIClient."""
@@ -216,6 +227,15 @@ class CarHardware:
             logger.warning(f"⚫ IR sensor - invalid result, returning False")
             return False
 
+    async def control_buzzer(self, action: str) -> bool:
+        """Control the buzzer."""
+        result, success = await self._safe_api_call(
+            self.api_client.buzzer_control,
+            f"Setting buzzer {action}",
+            action=action,
+        )
+        return success
+
 
 class MockHardware:
     """Mock hardware implementation for testing."""
@@ -225,6 +245,7 @@ class MockHardware:
         self.distance_reading = 50.0
         self.black_detected = False
         self.pen_is_down = False
+        self.buzzer_status = "off"
 
         # Track actual movements for testing
         self.total_distance_moved = 0.0
@@ -263,6 +284,12 @@ class MockHardware:
     async def is_black_detected(self) -> bool:
         """Return mock black detection."""
         return self.black_detected
+
+    async def control_buzzer(self, action: str) -> bool:
+        """Mock buzzer control."""
+        logger.info(f"[MOCK] Setting buzzer {action}")
+        self.buzzer_status = action
+        return True
 
     def reset(self):
         """Reset mock hardware state for testing."""
