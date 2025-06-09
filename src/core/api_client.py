@@ -30,6 +30,9 @@ class CarAPIClient:
         """
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
+        logger.info(
+            f"🌐 CarAPIClient initialized with base_url: {self.base_url}, timeout: {self.timeout}s"
+        )
 
     async def _post(
         self, endpoint: str, data: Dict[str, Union[str, int, float, bool]]
@@ -58,9 +61,16 @@ class CarAPIClient:
 
             if response.status_code == 200:
                 response_data = response.json()
+                logger.debug(f"Parsed JSON response: {response_data}")
+
+                # Try both "result" and "success_result" keys for backward compatibility
+                result = response_data.get("result") or response_data.get(
+                    "success_result"
+                )
+
                 return CarResponse(
                     success=response_data.get("success", False),
-                    result=response_data.get("success_result"),
+                    result=result,
                     error=response_data.get("error", ""),
                 )
             else:

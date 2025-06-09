@@ -255,7 +255,8 @@ class ExecutionContext:
 
         if self.send_message:
             await self.send_message(
-                f"📡 Sensor {sensor_type.value} reading: {value}", LogLevel.DEBUG
+                f"📡 Sensor {sensor_type.value} reading: {value} (type: {type(value).__name__})",
+                LogLevel.DEBUG,
             )
         return value
 

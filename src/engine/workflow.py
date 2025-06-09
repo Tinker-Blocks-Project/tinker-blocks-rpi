@@ -85,6 +85,7 @@ async def engine_workflow(
         hardware = CarHardware() if use_hardware else MockHardware()
         if use_hardware:
             await send_message("🔗 Using real hardware API", LogLevel.INFO)
+
         else:
             await send_message("🤖 Using mock hardware", LogLevel.INFO)
 

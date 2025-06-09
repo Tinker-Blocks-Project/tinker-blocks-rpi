@@ -88,18 +88,27 @@ class CarHardware:
     async def _safe_api_call(self, api_call, operation_name: str, *args, **kwargs):
         """Safely execute an API call with logging and error handling."""
         try:
-            logger.info(f"{operation_name}")
+            logger.info(f"🔧 {operation_name}")
+            logger.debug(f"   ↳ API call args: {args}")
+            logger.debug(f"   ↳ API call kwargs: {kwargs}")
+
             response = await api_call(*args, **kwargs)
 
+            logger.debug(
+                f"   ↳ Raw API response: success={response.success}, result={response.result}, error='{response.error}'"
+            )
+
             if response.success:
-                logger.debug(f"{operation_name} successful: {response.result}")
+                logger.debug(
+                    f"✅ {operation_name} successful: {response.result} (type: {type(response.result).__name__})"
+                )
                 return response.result, True
             else:
-                logger.error(f"{operation_name} failed: {response.error}")
+                logger.error(f"❌ {operation_name} failed: {response.error}")
                 return None, False
 
         except Exception as e:
-            logger.error(f"Error during {operation_name}: {e}")
+            logger.error(f"💥 Error during {operation_name}: {e}")
             return None, False
 
     async def move_distance(self, distance_cm: float) -> bool:
@@ -142,8 +151,30 @@ class CarHardware:
             action="distance",
         )
 
+        logger.debug(
+            f"📏 Distance sensor - success: {success}, result: {result}, type: {type(result).__name__}"
+        )
+
         if success and isinstance(result, (int, float)):
-            return float(result)
+            distance = float(result)
+            logger.debug(f"📏 Distance sensor returning: {distance}cm")
+            return distance
+        elif success:
+            # Try to convert string to float (in case ESP32 returns string)
+            try:
+                distance = float(result)
+                logger.debug(
+                    f"📏 Distance sensor (converted from string): {distance}cm"
+                )
+                return distance
+            except (ValueError, TypeError):
+                logger.warning(
+                    f"📏 Distance sensor - could not convert result '{result}' to float, using fallback"
+                )
+        else:
+            logger.warning(f"📏 Distance sensor - API call failed, using fallback")
+
+        logger.warning(f"📏 Distance sensor returning fallback value: 999.0cm")
         return 999.0
 
     async def is_obstacle_detected(self, threshold_cm: float = 30.0) -> bool:
@@ -155,7 +186,16 @@ class CarHardware:
             threshold=threshold_cm,
         )
 
-        return success and isinstance(result, bool) and result
+        logger.debug(
+            f"🚧 Obstacle sensor - success: {success}, result: {result}, type: {type(result).__name__}"
+        )
+
+        if success and isinstance(result, bool):
+            logger.debug(f"🚧 Obstacle sensor returning: {result}")
+            return result
+        else:
+            logger.warning(f"🚧 Obstacle sensor - invalid result, returning False")
+            return False
 
     async def is_black_detected(self) -> bool:
         """Check if IR sensor detects black surface."""
@@ -165,7 +205,16 @@ class CarHardware:
             action="black_obstacle",
         )
 
-        return success and isinstance(result, bool) and result
+        logger.debug(
+            f"⚫ IR sensor - success: {success}, result: {result}, type: {type(result).__name__}"
+        )
+
+        if success and isinstance(result, bool):
+            logger.debug(f"⚫ IR sensor returning: {result}")
+            return result
+        else:
+            logger.warning(f"⚫ IR sensor - invalid result, returning False")
+            return False
 
 
 class MockHardware:
