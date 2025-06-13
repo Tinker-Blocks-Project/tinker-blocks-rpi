@@ -271,7 +271,6 @@ The engine supports a comprehensive set of commands for programming:
   - `MOVE` → Move 1 unit forward
   - `MOVE | 5` → Move 5 units forward
   - `MOVE | -3` → Move 3 units backward
-  - `MOVE | WHILE | condition` → Move while condition is true
 
 ### Rotation Commands
 - **`TURN`** - Rotate the car (requires LEFT, RIGHT, or degrees)
@@ -280,14 +279,15 @@ The engine supports a comprehensive set of commands for programming:
   - `TURN | 45` → Turn 45° right (positive = right, negative = left)
   - `TURN | LEFT | 30` → Turn left by 30°
   - `TURN | RIGHT | 45` → Turn right by 45°
-  - `TURN | LEFT | WHILE | condition` → Turn left while condition is true
 
 ### Control Flow
-- **`LOOP`** - Repeat nested commands
+- **`LOOP`** - Repeat nested commands a specified number of times
   - `LOOP | 5` → Repeat 5 times
   - `LOOP | TRUE` → Infinite loop (until max steps)
   - `LOOP | FALSE` → No execution
-  - `LOOP | WHILE | condition` → Loop while condition is true
+  
+- **`WHILE`** - Repeat nested commands while a condition is true
+  - `WHILE | condition` → Loop while condition is true
   
 - **`IF`** - Conditional execution
   - `IF | condition` → Execute nested commands if true
@@ -308,7 +308,6 @@ The engine supports a comprehensive set of commands for programming:
 - **`WAIT`** - Pause execution
   - `WAIT | 2` → Wait 2 seconds
   - `WAIT | 0.5` → Wait 0.5 seconds
-  - `WAIT | WHILE | condition` → Wait while condition is true
 
 ### Values and Expressions
 - **Numbers**: `5`, `3.14`, `-2`

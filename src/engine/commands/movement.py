@@ -1,11 +1,10 @@
 from typing import ClassVar
 from dataclasses import dataclass
-import asyncio
 from core.types import LogLevel
 
 from .base import Command
 from ..context import ExecutionContext
-from ..values import Value, ValueParser, ExpressionParser, NumberValue, DirectionValue
+from ..values import Value, ValueParser, NumberValue, DirectionValue
 
 
 @dataclass
@@ -16,7 +15,6 @@ class MoveCommand(Command):
 
     # Command-specific attributes
     distance_value: Value | None = None
-    while_condition: Value | None = None
 
     def parse_args(self, tokens: list[str]) -> None:
         """Parse MOVE arguments.
@@ -25,28 +23,16 @@ class MoveCommand(Command):
         - MOVE (no args = move 1 unit forward)
         - MOVE | 5
         - MOVE | -3 (negative = backward)
-        - MOVE | WHILE | condition
         """
         if not tokens:
             # No arguments - default to moving 1 unit forward
             self.distance_value = NumberValue(1)
             return
 
-        # Check for WHILE modifier
-        if tokens[0].upper() == "WHILE":
-            # MOVE | WHILE | condition
-            if len(tokens) < 2:
-                raise ValueError("WHILE requires a condition")
-
-            condition_tokens = tokens[1:]
-            self.while_condition = ExpressionParser.parse_tokens(condition_tokens)
-            if not self.while_condition:
-                raise ValueError(f"Invalid condition: {' '.join(condition_tokens)}")
-        else:
-            # MOVE | distance
-            self.distance_value = ValueParser.parse(tokens[0])
-            if not self.distance_value:
-                raise ValueError(f"Invalid distance value: {tokens[0]}")
+        # MOVE | distance
+        self.distance_value = ValueParser.parse(tokens[0])
+        if not self.distance_value:
+            raise ValueError(f"Invalid distance value: {tokens[0]}")
 
     async def execute(self, context: ExecutionContext) -> None:
         """Execute the MOVE command."""
@@ -55,73 +41,31 @@ class MoveCommand(Command):
                 f"Executing MOVE at {self.grid_position}", LogLevel.DEBUG
             )
 
-        if self.while_condition:
-            # MOVE WHILE condition
-            step_distance = 1  # Move 1 unit at a time
-            if context.send_message:
-                await context.send_message("MOVE WHILE loop starting", LogLevel.DEBUG)
+        if not self.distance_value:
+            raise ValueError("MOVE command has no distance")
 
-            while True:
-                # Check cancellation
-                if context.check_cancelled and context.check_cancelled():
-                    if context.send_message:
-                        await context.send_message(
-                            "MOVE WHILE cancelled", LogLevel.DEBUG
-                        )
-                    break
+        # Regular MOVE with distance
+        if context.send_message:
+            await context.send_message(
+                f"⚙️ MOVE evaluating distance: {self.distance_value}", LogLevel.DEBUG
+            )
 
-                # Evaluate condition
-                if context.send_message:
-                    await context.send_message(
-                        f"⚙️ MOVE WHILE evaluating condition: {self.while_condition}",
-                        LogLevel.DEBUG,
-                    )
-                condition_result = await self.while_condition.evaluate(context)
-                if context.send_message:
-                    await context.send_message(
-                        f"🔍 MOVE WHILE condition result: {condition_result}",
-                        LogLevel.DEBUG,
-                    )
+        distance = await self.distance_value.evaluate(context)
+        if not isinstance(distance, (int, float)):
+            raise ValueError(f"Distance must be a number, got {type(distance)}")
 
-                if not condition_result:
-                    break
+        if context.send_message:
+            await context.send_message(f"🚗 Moving {distance} units", LogLevel.INFO)
 
-                # Move one step
-                await context.move(step_distance)
+        await context.move(float(distance))
 
-                # Small delay to prevent tight loops
-                await asyncio.sleep(0.01)
-
-                # Check for runaway execution
-                if context.steps_executed > context.max_steps:
-                    raise RuntimeError("Maximum steps exceeded")
-        elif self.distance_value:
-            # Regular MOVE with distance
-            if context.send_message:
-                await context.send_message(
-                    f"⚙️ MOVE evaluating distance: {self.distance_value}", LogLevel.DEBUG
-                )
-
-            distance = await self.distance_value.evaluate(context)
-            if not isinstance(distance, (int, float)):
-                raise ValueError(f"Distance must be a number, got {type(distance)}")
-
-            if context.send_message:
-                await context.send_message(f"🚗 Moving {distance} units", LogLevel.INFO)
-
-            await context.move(float(distance))
-
-            if context.send_message:
-                await context.send_message(
-                    f"📍 Moved to position ({context.position.x}, {context.position.y}), direction: {context.direction.value}",
-                    LogLevel.DEBUG,
-                )
-        else:
-            raise ValueError("MOVE command has neither distance nor WHILE condition")
+        if context.send_message:
+            await context.send_message(
+                f"📍 Moved to position ({context.position.x}, {context.position.y}), direction: {context.direction.value}",
+                LogLevel.DEBUG,
+            )
 
     def __repr__(self) -> str:
-        if self.while_condition:
-            return f"MoveCommand(WHILE {self.while_condition})"
         return f"MoveCommand({self.distance_value})"
 
 
@@ -133,7 +77,6 @@ class TurnCommand(Command):
 
     # Command-specific attributes
     direction: Value | None = None
-    while_condition: Value | None = None
 
     def parse_args(self, tokens: list[str]) -> None:
         """Parse TURN arguments.
@@ -144,8 +87,6 @@ class TurnCommand(Command):
         - TURN | 45 (degrees - positive=right, negative=left)
         - TURN | LEFT | 45 (turn left by 45 degrees)
         - TURN | RIGHT | 30 (turn right by 30 degrees)
-        - TURN | LEFT | WHILE | condition
-        - TURN | RIGHT | WHILE | condition
         """
         if not tokens:
             raise ValueError("TURN requires direction (LEFT or RIGHT) or degrees")
@@ -165,30 +106,17 @@ class TurnCommand(Command):
 
         # Check for additional arguments
         if len(tokens) >= 2:
-            # Check for WHILE modifier
-            if tokens[1].upper() == "WHILE":
-                # TURN | direction | WHILE | condition
-                self.direction = DirectionValue(direction_str)
-
-                if len(tokens) < 3:
-                    raise ValueError("WHILE requires a condition")
-
-                condition_tokens = tokens[2:]
-                self.while_condition = ExpressionParser.parse_tokens(condition_tokens)
-                if not self.while_condition:
-                    raise ValueError(f"Invalid condition: {' '.join(condition_tokens)}")
-            else:
-                # TURN | direction | degrees
-                try:
-                    custom_degrees = float(tokens[1])
-                    # Apply sign based on direction
-                    if direction_str == "LEFT":
-                        custom_degrees = -abs(custom_degrees)
-                    else:  # RIGHT
-                        custom_degrees = abs(custom_degrees)
-                    self.direction = NumberValue(custom_degrees)
-                except ValueError:
-                    raise ValueError(f"Invalid degrees value: {tokens[1]}")
+            # TURN | direction | degrees
+            try:
+                custom_degrees = float(tokens[1])
+                # Apply sign based on direction
+                if direction_str == "LEFT":
+                    custom_degrees = -abs(custom_degrees)
+                else:  # RIGHT
+                    custom_degrees = abs(custom_degrees)
+                self.direction = NumberValue(custom_degrees)
+            except ValueError:
+                raise ValueError(f"Invalid degrees value: {tokens[1]}")
         else:
             # Just direction, use default 90 degrees
             self.direction = DirectionValue(direction_str)
@@ -203,80 +131,26 @@ class TurnCommand(Command):
         if not self.direction:
             raise ValueError("TURN command has no direction")
 
-        if self.while_condition:
-            # TURN direction WHILE condition
-            direction_value = await self.direction.evaluate(context)
-            # DirectionValue returns -90 for LEFT, 90 for RIGHT
-            if not isinstance(direction_value, (int, float)):
-                raise ValueError(
-                    f"Expected numeric degrees, got {type(direction_value)}"
-                )
-            step_degrees = 5 if direction_value > 0 else -5  # 5 degrees at a time
+        # Regular TURN with direction
+        if context.send_message:
+            await context.send_message(
+                f"⚙️ TURN evaluating direction: {self.direction}", LogLevel.DEBUG
+            )
+
+        turn_degrees = await self.direction.evaluate(context)
+
+        if isinstance(turn_degrees, (int, float)):
+            if context.send_message:
+                await context.send_message(f"🔄 Turning {turn_degrees}°", LogLevel.INFO)
+
+            await context.turn(float(turn_degrees))
 
             if context.send_message:
                 await context.send_message(
-                    f"TURN WHILE loop starting ({step_degrees}° steps)", LogLevel.DEBUG
+                    f"🧭 Now facing {context.direction.value}", LogLevel.DEBUG
                 )
-
-            while True:
-                # Check cancellation
-                if context.check_cancelled and context.check_cancelled():
-                    if context.send_message:
-                        await context.send_message(
-                            "TURN WHILE cancelled", LogLevel.DEBUG
-                        )
-                    break
-
-                # Evaluate condition
-                if context.send_message:
-                    await context.send_message(
-                        f"⚙️ TURN WHILE evaluating condition: {self.while_condition}",
-                        LogLevel.DEBUG,
-                    )
-                condition_result = await self.while_condition.evaluate(context)
-                if context.send_message:
-                    await context.send_message(
-                        f"🔍 TURN WHILE condition result: {condition_result}",
-                        LogLevel.DEBUG,
-                    )
-
-                if not condition_result:
-                    break
-
-                # Turn one step
-                await context.turn(step_degrees)
-
-                # Small delay to prevent tight loops
-                await asyncio.sleep(0.01)
-
-                # Check for runaway execution
-                if context.steps_executed > context.max_steps:
-                    raise RuntimeError("Maximum steps exceeded")
         else:
-            # Regular TURN with direction
-            if context.send_message:
-                await context.send_message(
-                    f"⚙️ TURN evaluating direction: {self.direction}", LogLevel.DEBUG
-                )
-
-            turn_degrees = await self.direction.evaluate(context)
-
-            if isinstance(turn_degrees, (int, float)):
-                if context.send_message:
-                    await context.send_message(
-                        f"🔄 Turning {turn_degrees}°", LogLevel.INFO
-                    )
-
-                await context.turn(float(turn_degrees))
-
-                if context.send_message:
-                    await context.send_message(
-                        f"🧭 Now facing {context.direction.value}", LogLevel.DEBUG
-                    )
-            else:
-                raise ValueError(f"Invalid turn degrees: {turn_degrees}")
+            raise ValueError(f"Invalid turn degrees: {turn_degrees}")
 
     def __repr__(self) -> str:
-        if self.while_condition:
-            return f"TurnCommand({self.direction} WHILE {self.while_condition})"
         return f"TurnCommand({self.direction})"

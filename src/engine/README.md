@@ -44,7 +44,6 @@ Moves the car forward or backward.
 **Syntax**: 
 - `MOVE` - Move forward 1 unit
 - `MOVE | distance` - Move specified distance (negative for backward)
-- `MOVE | WHILE | condition` - Move while condition is true
 
 **Examples**:
 ```
@@ -52,7 +51,6 @@ MOVE                    # Move forward 1 unit
 MOVE | 5               # Move forward 5 units
 MOVE | -3              # Move backward 3 units  
 MOVE | X               # Move forward X units (variable)
-MOVE | WHILE | X < 10  # Move while X is less than 10
 ```
 
 #### TURN  
@@ -62,7 +60,6 @@ Rotates the car.
 - `TURN | direction` - Turn 90° in direction (LEFT or RIGHT)
 - `TURN | degrees` - Turn right by specified degrees
 - `TURN | direction | degrees` - Turn in direction by degrees
-- `TURN | direction | WHILE | condition` - Turn while condition is true
 
 **Examples**:
 ```
@@ -70,19 +67,17 @@ TURN | LEFT                      # Turn left 90°
 TURN | RIGHT                     # Turn right 90°
 TURN | 45                        # Turn right 45°
 TURN | LEFT | 30                 # Turn left 30°
-TURN | RIGHT | WHILE | X < 5     # Turn right while X < 5
 ```
 
 ### Control Flow Commands
 
 #### LOOP
-Repeats a block of commands.
+Repeats a block of commands a specified number of times.
 
 **Syntax**:
 - `LOOP | count` - Loop specified number of times
 - `LOOP | TRUE` - Loop forever (until max steps)
 - `LOOP | FALSE` - Don't execute loop body
-- `LOOP | WHILE | condition` - Loop while condition is true
 
 **Examples**:
 ```
@@ -94,10 +89,26 @@ LOOP | TRUE
     MOVE | 1
     IF | OBSTACLE
         TURN | RIGHT
+```
 
-LOOP | WHILE | X < 10
+#### WHILE
+Repeats a block of commands while a condition is true.
+
+**Syntax**:
+- `WHILE | condition` - Loop while condition is true
+
+**Examples**:
+```
+WHILE | X < 10
     MOVE | 1
     SET | X | X + 1
+
+WHILE | DISTANCE > 30
+    MOVE | 1
+
+WHILE | NOT OBSTACLE
+    MOVE | 1
+    TURN | LEFT | 5
 ```
 
 #### IF / ELSE
@@ -162,17 +173,15 @@ PEN_UP
 ### Utility Commands
 
 #### WAIT
-Pauses execution.
+Pauses execution for a specified time.
 
 **Syntax**:
 - `WAIT | seconds` - Wait for specified time
-- `WAIT | WHILE | condition` - Wait while condition is true
 
 **Examples**:
 ```
 WAIT | 2                        # Wait 2 seconds
 WAIT | 0.5                      # Wait half second
-WAIT | WHILE | DISTANCE < 20    # Wait while too close
 ```
 
 #### ALERT_ON / ALERT_OFF
@@ -295,7 +304,7 @@ PEN_UP
 
 ### Obstacle Avoidance
 ```
-LOOP | TRUE
+WHILE | TRUE
     IF | OBSTACLE
         TURN | RIGHT
         MOVE | 2
@@ -306,17 +315,18 @@ LOOP | TRUE
 
 ### Line Following
 ```
-LOOP | TRUE
+WHILE | TRUE
     IF | BLACK_DETECTED
         MOVE | 1
     ELSE
-        TURN | LEFT | WHILE | NOT BLACK_DETECTED
+        WHILE | NOT BLACK_DETECTED
+            TURN | LEFT | 5
 ```
 
 ### Variable Counter
 ```
 SET | COUNT | 0
-LOOP | WHILE | COUNT < 10
+WHILE | COUNT < 10
     MOVE | 1
     TURN | RIGHT
     SET | COUNT | COUNT + 1
@@ -333,8 +343,9 @@ LOOP | 10
 
 ### Sensor-Based Navigation
 ```
-LOOP | TRUE
-    MOVE | WHILE | DISTANCE > 30
+WHILE | TRUE
+    WHILE | DISTANCE > 30
+        MOVE | 1
     IF | DISTANCE < 10
         MOVE | -2
         TURN | 180
@@ -344,7 +355,7 @@ LOOP | TRUE
 
 ### Alert System
 ```
-LOOP | TRUE
+WHILE | TRUE
     IF | OBSTACLE
         ALERT_ON
         WAIT | 0.5
@@ -403,6 +414,7 @@ LOOP | TRUE
 The engine includes comprehensive end-to-end tests covering:
 - Basic movement and turning
 - Loops with various conditions
+- WHILE loops with conditions
 - IF/ELSE branching
 - Variable operations
 - Expression evaluation

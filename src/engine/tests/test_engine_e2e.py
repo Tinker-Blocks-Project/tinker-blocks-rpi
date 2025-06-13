@@ -210,7 +210,7 @@ async def test_variable_operations():
 
 @pytest.mark.asyncio
 async def test_while_conditions():
-    """Test WHILE modifiers on commands."""
+    """Test standalone WHILE command."""
     messages = []
 
     async def capture_messages(msg, level):
@@ -218,7 +218,7 @@ async def test_while_conditions():
 
     grid = [
         ["SET", "X", "0"],
-        ["LOOP", "WHILE", "X", "<", "5"],
+        ["WHILE", "X", "<", "5"],
         ["", "MOVE", ""],
         ["", "SET", "X", "X", "+", "1"],
     ]
@@ -321,7 +321,7 @@ async def test_drawing_commands():
 
 @pytest.mark.asyncio
 async def test_wait_command():
-    """Test WAIT command with time and WHILE condition."""
+    """Test WAIT command with time."""
     messages = []
 
     async def capture_messages(msg, level):
@@ -341,17 +341,6 @@ async def test_wait_command():
 
     assert elapsed >= 0.01  # At least the specified time
     assert context.steps_executed == 1
-
-    # WAIT WHILE FALSE (should not wait)
-    wait_false = CommandRegistry.create_command(
-        "WAIT", ["WHILE", "FALSE"], GridPosition(1, 0)
-    )
-    assert wait_false is not None
-    start_time2 = asyncio.get_event_loop().time()
-    context = await executor.execute_single(wait_false, context)
-    elapsed2 = asyncio.get_event_loop().time() - start_time2
-
-    assert elapsed2 < 0.1  # Should exit immediately
 
 
 @pytest.mark.asyncio
@@ -506,11 +495,11 @@ async def test_fibonacci_sequence():
     assert set_count is not None
     commands.append(set_count)
 
-    # LOOP WHILE COUNT < 10
-    loop_while = CommandRegistry.create_command(
-        "LOOP", ["WHILE", "COUNT", "<", "10"], GridPosition(3, 0)
+    # WHILE COUNT < 10
+    while_cmd = CommandRegistry.create_command(
+        "WHILE", ["COUNT", "<", "10"], GridPosition(3, 0)
     )
-    assert loop_while is not None
+    assert while_cmd is not None
 
     # Nested commands
     set_temp = CommandRegistry.create_command(
@@ -527,12 +516,12 @@ async def test_fibonacci_sequence():
     assert set_b2 is not None
     assert set_inc is not None
 
-    loop_while.add_nested_command(set_temp)
-    loop_while.add_nested_command(set_a2)
-    loop_while.add_nested_command(set_b2)
-    loop_while.add_nested_command(set_inc)
+    while_cmd.add_nested_command(set_temp)
+    while_cmd.add_nested_command(set_a2)
+    while_cmd.add_nested_command(set_b2)
+    while_cmd.add_nested_command(set_inc)
 
-    commands.append(loop_while)
+    commands.append(while_cmd)
 
     # Execute
     context = await executor.execute(commands)

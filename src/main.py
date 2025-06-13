@@ -85,6 +85,7 @@ async def handle_run_command(params: dict[str, Any] | None = None):
                 ocr_engine=ocr_engine,
                 send_message=send_message,
                 check_cancelled=check_cancelled,
+                use_image_path="/Users/izzat/Projects/TinkerBlocks/tinker-blocks-rpi/output/day2/20250612_180851/rotated_original.jpg",
             ),
             "OCR Grid Processing",
         )

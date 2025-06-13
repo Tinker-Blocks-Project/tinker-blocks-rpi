@@ -1,6 +1,6 @@
 from .base import Command, CommandRegistry
 from .movement import MoveCommand, TurnCommand
-from .control import LoopCommand, IfCommand, ElseCommand
+from .control import LoopCommand, WhileCommand, IfCommand, ElseCommand
 from .variable import SetCommand
 from .drawing import PenUpCommand, PenDownCommand
 from .utility import WaitCommand
@@ -12,6 +12,7 @@ __all__ = [
     "MoveCommand",
     "TurnCommand",
     "LoopCommand",
+    "WhileCommand",
     "IfCommand",
     "ElseCommand",
     "SetCommand",
@@ -26,6 +27,7 @@ __all__ = [
 CommandRegistry.register(MoveCommand)
 CommandRegistry.register(TurnCommand)
 CommandRegistry.register(LoopCommand)
+CommandRegistry.register(WhileCommand)
 CommandRegistry.register(IfCommand)
 CommandRegistry.register(ElseCommand)
 CommandRegistry.register(SetCommand)

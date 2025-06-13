@@ -1,4 +1,4 @@
-"""Control flow commands: LOOP, IF, ELSE."""
+"""Control flow commands: LOOP, WHILE, IF, ELSE."""
 
 from typing import ClassVar
 from dataclasses import dataclass, field
@@ -11,40 +11,28 @@ from ..values import Value, ValueParser, ExpressionParser
 
 @dataclass
 class LoopCommand(Command):
-    """LOOP command - repeats nested commands."""
+    """LOOP command - repeats nested commands a specified number of times."""
 
     COMMAND_NAMES: ClassVar[list[str]] = ["LOOP", "REPEAT", "FOR"]
 
     # Command-specific attributes
     count_value: Value | None = None
-    while_condition: Value | None = None
 
     def parse_args(self, tokens: list[str]) -> None:
         """Parse LOOP arguments.
 
         Formats:
         - LOOP | 5
-        - LOOP | FOREVER
-        - LOOP | WHILE | condition
+        - LOOP | TRUE (infinite loop)
+        - LOOP | FALSE (no loop)
         """
         if not tokens:
-            raise ValueError("LOOP requires count or WHILE condition")
+            raise ValueError("LOOP requires a count")
 
-        # Check for WHILE modifier
-        if tokens[0].upper() == "WHILE":
-            # LOOP | WHILE | condition
-            if len(tokens) < 2:
-                raise ValueError("WHILE requires a condition")
-
-            condition_tokens = tokens[1:]
-            self.while_condition = ExpressionParser.parse_tokens(condition_tokens)
-            if not self.while_condition:
-                raise ValueError(f"Invalid condition: {' '.join(condition_tokens)}")
-        else:
-            # LOOP | count
-            self.count_value = ValueParser.parse(tokens[0])
-            if not self.count_value:
-                raise ValueError(f"Invalid loop count: {tokens[0]}")
+        # LOOP | count
+        self.count_value = ValueParser.parse(tokens[0])
+        if not self.count_value:
+            raise ValueError(f"Invalid loop count: {tokens[0]}")
 
     async def execute(self, context: ExecutionContext) -> None:
         """Execute the LOOP command."""
@@ -53,73 +41,23 @@ class LoopCommand(Command):
                 f"Executing LOOP at {self.grid_position}", LogLevel.DEBUG
             )
 
-        if self.while_condition:
-            # LOOP WHILE condition
-            while True:
-                # Check cancellation
-                if context.check_cancelled and context.check_cancelled():
-                    break
+        if not self.count_value:
+            raise ValueError("LOOP command has no count")
 
-                # Evaluate condition
-                if context.send_message:
-                    await context.send_message(
-                        f"⚙️ LOOP WHILE evaluating condition: {self.while_condition}",
-                        LogLevel.DEBUG,
-                    )
-                condition_result = await self.while_condition.evaluate(context)
-                if context.send_message:
-                    await context.send_message(
-                        f"🔍 LOOP WHILE condition result: {condition_result}",
-                        LogLevel.DEBUG,
-                    )
-                if not condition_result:
-                    break
+        if context.send_message:
+            await context.send_message(
+                f"⚙️ LOOP evaluating count: {self.count_value}", LogLevel.DEBUG
+            )
+        count = await self.count_value.evaluate(context)
+        if context.send_message:
+            await context.send_message(
+                f"🔢 LOOP count evaluated to: {count}", LogLevel.DEBUG
+            )
 
-                # Execute nested commands
-                for command in self.nested_commands:
-                    if context.check_cancelled and context.check_cancelled():
-                        break
-                    await command.execute(context)
-
-                # Check for runaway execution
-                if context.steps_executed > context.max_steps:
-                    raise RuntimeError("Maximum steps exceeded")
-
-        elif self.count_value:
-            # Regular LOOP with count
-            if context.send_message:
-                await context.send_message(
-                    f"⚙️ LOOP evaluating count: {self.count_value}", LogLevel.DEBUG
-                )
-            count = await self.count_value.evaluate(context)
-            if context.send_message:
-                await context.send_message(
-                    f"🔢 LOOP count evaluated to: {count}", LogLevel.DEBUG
-                )
-
-            # Handle TRUE/FALSE for infinite/no loop
-            if isinstance(count, bool):
-                if count:  # TRUE = infinite loop
-                    while True:
-                        # Check cancellation
-                        if context.check_cancelled and context.check_cancelled():
-                            break
-
-                        # Execute nested commands
-                        for command in self.nested_commands:
-                            if context.check_cancelled and context.check_cancelled():
-                                break
-                            await command.execute(context)
-
-                        # Check for runaway execution
-                        if context.steps_executed > context.max_steps:
-                            raise RuntimeError("Maximum steps exceeded")
-                else:  # FALSE = no loop
-                    return
-            elif isinstance(count, (int, float)):
-                # Fixed count loop
-                iterations = int(count)
-                for i in range(iterations):
+        # Handle TRUE/FALSE for infinite/no loop
+        if isinstance(count, bool):
+            if count:  # TRUE = infinite loop
+                while True:
                     # Check cancellation
                     if context.check_cancelled and context.check_cancelled():
                         break
@@ -129,17 +67,99 @@ class LoopCommand(Command):
                         if context.check_cancelled and context.check_cancelled():
                             break
                         await command.execute(context)
-            else:
-                raise ValueError(
-                    f"Loop count must be a number or boolean, got {type(count)}"
-                )
+
+                    # Check for runaway execution
+                    if context.steps_executed > context.max_steps:
+                        raise RuntimeError("Maximum steps exceeded")
+            else:  # FALSE = no loop
+                return
+        elif isinstance(count, (int, float)):
+            # Fixed count loop
+            iterations = int(count)
+            for i in range(iterations):
+                # Check cancellation
+                if context.check_cancelled and context.check_cancelled():
+                    break
+
+                # Execute nested commands
+                for command in self.nested_commands:
+                    if context.check_cancelled and context.check_cancelled():
+                        break
+                    await command.execute(context)
         else:
-            raise ValueError("LOOP command has neither count nor WHILE condition")
+            raise ValueError(
+                f"Loop count must be a number or boolean, got {type(count)}"
+            )
 
     def __repr__(self) -> str:
-        if self.while_condition:
-            return f"LoopCommand(WHILE {self.while_condition}, {len(self.nested_commands)} commands)"
         return f"LoopCommand({self.count_value}, {len(self.nested_commands)} commands)"
+
+
+@dataclass
+class WhileCommand(Command):
+    """WHILE command - repeats nested commands while a condition is true."""
+
+    COMMAND_NAMES: ClassVar[list[str]] = ["WHILE"]
+
+    # Command-specific attributes
+    condition: Value | None = None
+
+    def parse_args(self, tokens: list[str]) -> None:
+        """Parse WHILE arguments.
+
+        Format:
+        - WHILE | condition
+        """
+        if not tokens:
+            raise ValueError("WHILE requires a condition")
+
+        self.condition = ExpressionParser.parse_tokens(tokens)
+        if not self.condition:
+            raise ValueError(f"Invalid condition: {' '.join(tokens)}")
+
+    async def execute(self, context: ExecutionContext) -> None:
+        """Execute the WHILE command."""
+        if context.send_message:
+            await context.send_message(
+                f"Executing WHILE at {self.grid_position}", LogLevel.DEBUG
+            )
+
+        if not self.condition:
+            raise ValueError("WHILE command has no condition")
+
+        # WHILE condition loop
+        while True:
+            # Check cancellation
+            if context.check_cancelled and context.check_cancelled():
+                break
+
+            # Evaluate condition
+            if context.send_message:
+                await context.send_message(
+                    f"⚙️ WHILE evaluating condition: {self.condition}",
+                    LogLevel.DEBUG,
+                )
+            condition_result = await self.condition.evaluate(context)
+            if context.send_message:
+                await context.send_message(
+                    f"🔍 WHILE condition result: {condition_result}",
+                    LogLevel.DEBUG,
+                )
+            if not condition_result:
+                break
+
+            # Execute nested commands
+            for command in self.nested_commands:
+                if context.check_cancelled and context.check_cancelled():
+                    break
+                await command.execute(context)
+
+            # Check for runaway execution
+            if context.steps_executed > context.max_steps:
+                raise RuntimeError("Maximum steps exceeded")
+
+    def __repr__(self) -> str:
+        return f"WhileCommand({self.condition}, {len(self.nested_commands)} commands)"
 
 
 @dataclass
