@@ -35,6 +35,7 @@ async def test_ocr_workflow_full_execution():
 
     # Mock the external dependencies
     with (
+        patch("vision.workflow.capture_image_client") as mock_capture,
         patch("vision.workflow.Image") as mock_image,
         patch("vision.workflow.PerspectiveGrid") as mock_grid,
         patch("os.makedirs"),
@@ -43,6 +44,8 @@ async def test_ocr_workflow_full_execution():
         patch("builtins.open", mock_open()),
     ):
         # Setup mocks
+        mock_capture.return_value = "test_image.jpg"
+
         mock_image_inst = MagicMock()
         mock_image_inst.rotate_90_clockwise.return_value = mock_image_inst
         mock_image_inst.to_grayscale.return_value = mock_image_inst

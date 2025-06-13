@@ -52,7 +52,7 @@ class HardwareInterface(Protocol):
         """
         ...
 
-    async def is_obstacle_detected(self, threshold_cm: float = 30.0) -> bool:
+    async def is_obstacle_detected(self, threshold_cm: float = 15.0) -> bool:
         """Check if obstacle is detected within threshold.
 
         Args:
@@ -173,7 +173,7 @@ class CarHardware:
         elif success:
             # Try to convert string to float (in case ESP32 returns string)
             try:
-                distance = float(result)
+                distance = float(result)  # type: ignore[arg-type]
                 logger.debug(
                     f"📏 Distance sensor (converted from string): {distance}cm"
                 )
@@ -183,30 +183,19 @@ class CarHardware:
                     f"📏 Distance sensor - could not convert result '{result}' to float, using fallback"
                 )
         else:
-            logger.warning(f"📏 Distance sensor - API call failed, using fallback")
+            logger.warning("📏 Distance sensor - API call failed, using fallback")
 
-        logger.warning(f"📏 Distance sensor returning fallback value: 999.0cm")
+        logger.warning("📏 Distance sensor returning fallback value: 999.0cm")
         return 999.0
 
-    async def is_obstacle_detected(self, threshold_cm: float = 30.0) -> bool:
+    async def is_obstacle_detected(self, threshold_cm: float = 15.0) -> bool:
         """Check if obstacle is detected within threshold."""
-        result, success = await self._safe_api_call(
-            self.api_client.get_sensor_data,
-            f"Checking obstacle (threshold: {threshold_cm}cm)",
-            action="obstacle",
-            threshold=threshold_cm,
-        )
-
+        distance = await self.get_distance_cm()
+        is_obstacle = distance < threshold_cm
         logger.debug(
-            f"🚧 Obstacle sensor - success: {success}, result: {result}, type: {type(result).__name__}"
+            f"🚧 Obstacle detection - distance: {distance}cm, threshold: {threshold_cm}cm, obstacle: {is_obstacle}"
         )
-
-        if success and isinstance(result, bool):
-            logger.debug(f"🚧 Obstacle sensor returning: {result}")
-            return result
-        else:
-            logger.warning(f"🚧 Obstacle sensor - invalid result, returning False")
-            return False
+        return is_obstacle
 
     async def is_black_detected(self) -> bool:
         """Check if IR sensor detects black surface."""
@@ -224,7 +213,7 @@ class CarHardware:
             logger.debug(f"⚫ IR sensor returning: {result}")
             return result
         else:
-            logger.warning(f"⚫ IR sensor - invalid result, returning False")
+            logger.warning("⚫ IR sensor - invalid result, returning False")
             return False
 
     async def control_buzzer(self, action: str) -> bool:
@@ -277,7 +266,7 @@ class MockHardware:
         """Return mock distance reading."""
         return self.distance_reading
 
-    async def is_obstacle_detected(self, threshold_cm: float = 30.0) -> bool:
+    async def is_obstacle_detected(self, threshold_cm: float = 15.0) -> bool:
         """Return mock obstacle detection."""
         return self.distance_reading < threshold_cm
 

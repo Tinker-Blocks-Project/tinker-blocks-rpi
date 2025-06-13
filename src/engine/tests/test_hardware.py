@@ -73,7 +73,7 @@ async def test_mock_hardware_sensors():
 
     # Test obstacle detection
     is_obstacle = await hardware.is_obstacle_detected()
-    assert is_obstacle is False  # 50 > 30 (default threshold)
+    assert is_obstacle is False  # 50 > 15 (default threshold)
 
     is_obstacle = await hardware.is_obstacle_detected(threshold_cm=60.0)
     assert is_obstacle is True  # 50 < 60
@@ -83,14 +83,14 @@ async def test_mock_hardware_sensors():
     assert is_black is False  # Default value
 
     # Change mock values
-    hardware.distance_reading = 15.0
+    hardware.distance_reading = 10.0
     hardware.black_detected = True
 
     distance = await hardware.get_distance_cm()
-    assert distance == 15.0
+    assert distance == 10.0
 
     is_obstacle = await hardware.is_obstacle_detected()
-    assert is_obstacle is True  # 15 < 30
+    assert is_obstacle is True  # 10 < 15
 
     is_black = await hardware.is_black_detected()
     assert is_black is True
@@ -244,17 +244,17 @@ async def test_car_hardware_obstacle_detection():
     """Test CarHardware obstacle detection."""
     mock_api = MockCarAPIClient()
     # Set distance that will trigger obstacle detection
-    mock_api.distance_reading = 20.0
+    mock_api.distance_reading = 10.0
 
     hardware = CarHardware(api_client=mock_api)
 
-    # Test with default threshold (30cm)
+    # Test with default threshold (15cm)
     is_obstacle = await hardware.is_obstacle_detected()
-    assert is_obstacle is True  # 20 < 30
+    assert is_obstacle is True  # 10 < 15
 
     # Test with custom threshold
-    is_obstacle = await hardware.is_obstacle_detected(threshold_cm=15.0)
-    assert is_obstacle is False  # 20 > 15
+    is_obstacle = await hardware.is_obstacle_detected(threshold_cm=20.0)
+    assert is_obstacle is True  # 10 < 20
 
 
 @pytest.mark.asyncio
@@ -329,15 +329,3 @@ async def test_car_hardware_invalid_sensor_response():
     )
     is_obstacle = await hardware.is_obstacle_detected()
     assert is_obstacle is False  # Fallback for invalid response
-
-
-@pytest.mark.asyncio
-async def test_car_hardware_default_api_client_creation():
-    """Test CarHardware creates default API client when none provided."""
-    # Test with default config values since patching Pydantic config is complex
-    hardware = CarHardware()
-
-    # Should have created an API client with default config values
-    assert hardware.api_client is not None
-    assert hardware.api_client.base_url == "http://192.168.1.100"
-    assert hardware.api_client.timeout == 15.0

@@ -67,5 +67,9 @@ async def test_invalid_json_sends_error():
     with patch("core.ws_server.connected_clients", set()):
         await handler(mock_websocket)
 
-    # Should send error response
-    mock_websocket.send.assert_called_with(json.dumps({"error": "Invalid JSON"}))
+    # Should send error response containing "Invalid JSON"
+    mock_websocket.send.assert_called_once()
+    call_args = mock_websocket.send.call_args[0][0]
+    error_data = json.loads(call_args)
+    assert "error" in error_data
+    assert "Invalid JSON" in error_data["error"]

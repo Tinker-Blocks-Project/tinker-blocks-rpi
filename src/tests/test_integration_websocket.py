@@ -154,7 +154,8 @@ async def test_websocket_error_handling():
             # Should receive error response
             response = await ws.recv()
             data = json.loads(response)
-            assert data["error"] == "Invalid JSON"
+            assert "error" in data
+            assert "Invalid JSON" in data["error"]
 
             # Send JSON without command
             await ws.send(json.dumps({"params": {"test": True}}))

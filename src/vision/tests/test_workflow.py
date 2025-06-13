@@ -23,7 +23,10 @@ async def test_ocr_grid_workflow_cancellation():
     # Mock OCR engine
     mock_ocr = AsyncMock()
 
-    result = await ocr_grid_workflow(mock_ocr, mock_send, mock_check_cancelled)
+    # Mock the image capture to avoid actual network calls
+    with patch("vision.workflow.capture_image_client") as mock_capture:
+        mock_capture.return_value = "test_image.jpg"
+        result = await ocr_grid_workflow(mock_ocr, mock_send, mock_check_cancelled)
 
     # Should return empty grid due to cancellation
     assert isinstance(result, Grid)
@@ -52,14 +55,17 @@ async def test_ocr_grid_workflow_messages():
 
     # Mock external dependencies
     with (
+        patch("vision.workflow.capture_image_client") as mock_capture,
         patch("vision.workflow.Image") as mock_image_class,
         patch("vision.workflow.PerspectiveGrid") as mock_grid_class,
         patch("os.makedirs"),
         patch("os.path.exists", return_value=True),
         patch("os.remove"),
-        patch("builtins.open", mock_open()) as mock_file,
+        patch("builtins.open", mock_open()),
     ):
         # Setup mocks
+        mock_capture.return_value = "test_image.jpg"
+
         mock_image = MagicMock()
         mock_image.rotate_90_clockwise.return_value = mock_image
         mock_image.to_grayscale.return_value = mock_image

@@ -54,8 +54,8 @@ async def handler(websocket):
                         json.dumps({"error": "No command processor registered"})
                     )
 
-            except json.JSONDecodeError:
-                await websocket.send(json.dumps({"error": "Invalid JSON"}))
+            except json.JSONDecodeError as e:
+                await websocket.send(json.dumps({"error": f"Invalid JSON: {e}"}))
     except websockets.exceptions.ConnectionClosed:
         print("Client disconnected")
     finally:

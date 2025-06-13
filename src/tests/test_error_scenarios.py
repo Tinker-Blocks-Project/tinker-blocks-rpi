@@ -140,8 +140,12 @@ async def test_ocr_workflow_with_missing_image():
 
     controller = ProcessController(capture_messages)
 
-    with patch("vision.workflow.Image.from_file") as mock_from_file:
-        # Simulate file not found
+    with (
+        patch("vision.workflow.capture_image_client") as mock_capture,
+        patch("vision.workflow.Image.from_file") as mock_from_file,
+    ):
+        # Setup mocks
+        mock_capture.return_value = "test_image.jpg"
         mock_from_file.side_effect = FileNotFoundError("Image not found")
 
         # Create a mock OCR engine

@@ -33,16 +33,46 @@ class OCRResponse(BaseModel):
 
 
 vlm_ocr_system_prompt = f"""
-The following is a grid of {config.grid_cols} column by {config.grid_rows} row cells.
-Each cell contains an arbitrary text (word, symbol, number, etc.)
-Your task is to extract the visible texts and map them to rows and columns.
+# Grid Text Extraction Task
 
-Return a list of blocks, each block represents a cell, and contains the row, column and text.
+## Grid Layout
+You are analyzing a grid with the following dimensions:
+- **Columns**: {config.grid_cols}
+- **Rows**: {config.grid_rows}
+Cells are separated by black lines for clarity.
 
-The row and column are 0-indexed.
-The text is the exact text of the cell.
+## Goal
+Extract all visible text from each cell in the grid and map them to their corresponding positions.
 
-Do not modify the identation or the content of the text.
+## Input Format
+- The image contains a grid layout with cells arranged in rows and columns
+- Each cell may contain text (words, symbols, numbers, or other characters)
+- Some cells may be empty
+- All text is in english, no whitespace or special characters (except underscores), the rest is alphabet letters.
+
+## Output Requirements
+
+### Output Format
+Return a list of blocks where each block represents a non-empty cell containing:
+- **row**: 0-indexed row number (0 to {config.grid_rows - 1})
+- **col**: 0-indexed column number (0 to {config.grid_cols - 1})
+- **text**: Exact text content of the cell
+
+### Rules
+- All text is in alphabet letters or numbers or underscores, no whitespace or special characters.
+- Use 0-based indexing for both rows and columns
+- Extract text exactly as it appears - do not modify spelling, capitalization, or formatting
+- Only include cells that contain visible text in your output
+- Ensure row/column indices are within the valid grid boundaries
+
+### Example
+If you see text "Hello" in the top-left cell, it should be mapped as:
+- row: 0, col: 0, text: "Hello"
+
+## Background about the text
+- The texts represent programming instructions for a car robot. This is an educational project for children. 
+So its fine if the program have mistakes, the goal is to map it exactly as it is and let the engine try to run it, if it fails, the engine will tell the child what is wrong.
+
 """
 
 
@@ -90,7 +120,7 @@ class VLM_OCR:
                 ).format_prompt()
             )  # type: ignore
 
-        except Exception as e:
+        except Exception:
             # Return empty grid on error, let the workflow handle error messaging
             return Grid(
                 blocks=[

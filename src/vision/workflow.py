@@ -10,12 +10,14 @@ from vision.grid import PerspectiveGrid
 from vision.ocr import OCRProtocol
 from core.config import config
 from core.types import LogLevel
+from vision.capture import capture_image_client
 
 
 async def ocr_grid_workflow(
     ocr_engine: OCRProtocol,
     send_message: Callable[[str, LogLevel], Awaitable[None]],
     check_cancelled: Callable[[], bool],
+    use_image_path: str | None = None,
 ) -> Grid:
     """
     Complete OCR grid processing workflow.
@@ -24,6 +26,7 @@ async def ocr_grid_workflow(
         ocr_engine: OCR implementation that conforms to OCRProtocol
         send_message: Function to send status messages
         check_cancelled: Function to check if process was cancelled
+        use_image_path: Path to the image to process intead of capturing a new one (for debugging)
 
     Returns:
         Grid object representing the detected commands
@@ -39,8 +42,7 @@ async def ocr_grid_workflow(
         return Grid(blocks=[])
 
     await send_message("\n📸 Capturing image...", LogLevel.INFO)
-    # In production, replace with: image_path = capture_image_client() or capture_image_local()
-    image_path = "assets/oak-d_images/frame_064.png"
+    image_path = use_image_path or capture_image_client()
     await send_message(f"Using image: {image_path}", LogLevel.DEBUG)
 
     # Step 2: Load and process image
@@ -50,8 +52,11 @@ async def ocr_grid_workflow(
     processing_start_time = time.time()
     await send_message("\n🔄 Processing image...", LogLevel.INFO)
     try:
-        image = Image.from_file(image_path)
-        rotated = image.rotate_90_clockwise()
+        image = Image.from_file(image_path)  # type: ignore
+        if use_image_path is None:
+            rotated = image.rotate_90_clockwise()
+        else:
+            rotated = image
 
         # Create timestamped output folder early to save all processing images
         output_folder = f"{config.output_dir}/{timestamp}"
