@@ -96,13 +96,13 @@ async def test_engine_workflow_execution():
 
     # Sample grid
     test_grid = [
-        ["MOVE"],
-        ["MOVE"],
+        ["MOVE", "1"],
+        ["MOVE", "1"],
         ["TURN", "RIGHT"],
-        ["MOVE"],
+        ["MOVE", "1"],
         ["TURN", "LEFT"],
-        ["MOVE"],
-        ["MOVE"],
+        ["MOVE", "1"],
+        ["MOVE", "1"],
     ]
 
     # Run workflow
@@ -149,10 +149,10 @@ async def test_full_pipeline_workflow():
 
     # Mock OCR workflow to return a grid
     mock_grid = [
-        ["MOVE"],
+        ["MOVE", "1"],
         ["TURN", "RIGHT"],
         ["TURN", "LEFT"],
-        ["MOVE"],
+        ["MOVE", "1"],
     ]
 
     from vision.types import Grid

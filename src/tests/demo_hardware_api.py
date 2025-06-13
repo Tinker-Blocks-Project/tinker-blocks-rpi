@@ -81,20 +81,20 @@ async def demo_hardware_tracking():
 
     # Define movement program
     grid = [
-        ["MOVE", "10", ""],  # Move 10 units forward (100cm)
+        ["MOVE", "10", ""],  # Move 10cm forward
         ["TURN", "RIGHT", ""],  # Turn 90° right
-        ["MOVE", "5", ""],  # Move 5 units forward (50cm)
+        ["MOVE", "5", ""],  # Move 5cm forward
         ["TURN", "LEFT", "45"],  # Turn 45° left
-        ["MOVE", "3", ""],  # Move 3 units forward (30cm)
+        ["MOVE", "3", ""],  # Move 3cm forward
     ]
 
     print("\n📝 Program: Complex movement sequence")
     print("Expected real-world movements:")
-    print("  - Move 100cm forward")
+    print("  - Move 10cm forward")
     print("  - Turn 90° right")
-    print("  - Move 50cm forward")
+    print("  - Move 5cm forward")
     print("  - Turn 45° left")
-    print("  - Move 30cm forward")
+    print("  - Move 3cm forward")
 
     # Create a custom executor to get access to hardware
     from engine import Executor

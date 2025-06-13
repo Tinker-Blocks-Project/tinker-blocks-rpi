@@ -19,10 +19,10 @@ async def test_simple_movement_sequence():
         messages.append(msg)
 
     grid = [
-        ["MOVE", "", ""],
-        ["MOVE", "", ""],
+        ["MOVE", "1", ""],
+        ["MOVE", "1", ""],
         ["TURN", "RIGHT", ""],
-        ["MOVE", "", ""],
+        ["MOVE", "1", ""],
     ]
 
     result = await engine_workflow(capture_messages, lambda: False, grid)
@@ -102,7 +102,7 @@ async def test_loop_with_count():
     # Simple loop with nested command
     grid = [
         ["LOOP", "3", ""],
-        ["", "MOVE", ""],  # Indented command
+        ["", "MOVE", "1"],  # Indented command
     ]
 
     result = await engine_workflow(capture_messages, lambda: False, grid)
@@ -123,7 +123,7 @@ async def test_loop_with_true_condition():
     # Infinite loop - will hit max steps
     grid = [
         ["LOOP", "TRUE", ""],
-        ["", "MOVE", ""],
+        ["", "MOVE", "1"],
     ]
 
     # The workflow sets max_steps to 1000, so it should fail
@@ -143,7 +143,7 @@ async def test_loop_with_false_condition():
 
     grid = [
         ["LOOP", "FALSE", ""],
-        ["", "MOVE", ""],
+        ["", "MOVE", "1"],
     ]
 
     result = await engine_workflow(capture_messages, lambda: False, grid)
@@ -219,7 +219,7 @@ async def test_while_conditions():
     grid = [
         ["SET", "X", "0"],
         ["WHILE", "X", "<", "5"],
-        ["", "MOVE", ""],
+        ["", "MOVE", "1"],
         ["", "SET", "X", "X", "+", "1"],
     ]
 
@@ -430,7 +430,7 @@ async def test_cancellation():
 
     # Should have executed max_steps + 1 (error raised after increment)
     assert context.steps_executed == 101
-    assert context.position.y == 101
+    assert context.position.y == 101 * 999  # Each MOVE now moves 999 units
 
 
 @pytest.mark.asyncio

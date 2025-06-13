@@ -102,8 +102,8 @@ class ExecutionContext:
 
         # Use hardware interface if available
         if self.hardware:
-            # Convert logical distance to real-world distance in cm
-            distance_cm = distance * 10  # 1 logical unit = 10cm
+            # Use distance directly in cm (no unit conversion)
+            distance_cm = distance
             if self.send_message:
                 await self.send_message(
                     f"🔧 Hardware move: {distance_cm}cm", LogLevel.DEBUG

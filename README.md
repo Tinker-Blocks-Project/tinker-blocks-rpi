@@ -267,10 +267,10 @@ For detailed information about each module:
 The engine supports a comprehensive set of commands for programming:
 
 ### Movement Commands
-- **`MOVE`** - Move forward 1 unit (default) or specified distance
-  - `MOVE` → Move 1 unit forward
-  - `MOVE | 5` → Move 5 units forward
-  - `MOVE | -3` → Move 3 units backward
+- **`MOVE`** - Move forward or backward
+  - `MOVE` → Move 999cm forward (effectively "move until obstacle")
+  - `MOVE | 5` → Move 5cm forward
+  - `MOVE | -3` → Move 3cm backward
 
 ### Rotation Commands
 - **`TURN`** - Rotate the car (requires LEFT, RIGHT, or degrees)

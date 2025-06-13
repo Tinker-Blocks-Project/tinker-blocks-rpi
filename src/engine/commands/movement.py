@@ -20,13 +20,13 @@ class MoveCommand(Command):
         """Parse MOVE arguments.
 
         Formats:
-        - MOVE (no args = move 1 unit forward)
+        - MOVE (no args = move 999 units forward - effectively "move until obstacle")
         - MOVE | 5
         - MOVE | -3 (negative = backward)
         """
         if not tokens:
-            # No arguments - default to moving 1 unit forward
-            self.distance_value = NumberValue(1)
+            # No arguments - default to moving 999 units forward (effectively infinite)
+            self.distance_value = NumberValue(999)
             return
 
         # MOVE | distance

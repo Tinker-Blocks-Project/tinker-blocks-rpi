@@ -42,15 +42,15 @@ Arguments are collected from subsequent cells until another command is found.
 Moves the car forward or backward.
 
 **Syntax**: 
-- `MOVE` - Move forward 1 unit
-- `MOVE | distance` - Move specified distance (negative for backward)
+- `MOVE` - Move forward 999cm (effectively "move until obstacle")
+- `MOVE | distance` - Move specified distance in centimeters (negative for backward)
 
 **Examples**:
 ```
-MOVE                    # Move forward 1 unit
-MOVE | 5               # Move forward 5 units
-MOVE | -3              # Move backward 3 units  
-MOVE | X               # Move forward X units (variable)
+MOVE                    # Move forward 999cm (until obstacle)
+MOVE | 5               # Move forward 5cm
+MOVE | -3              # Move backward 3cm  
+MOVE | X               # Move forward X cm (variable)
 ```
 
 #### TURN  

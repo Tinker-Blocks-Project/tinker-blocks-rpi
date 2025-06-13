@@ -60,10 +60,8 @@ async def test_hardware_integration_movement_tracking():
 
     context = await executor.execute(valid_commands)
 
-    # Check hardware movements (real-world distances in cm)
-    assert (
-        hardware.total_distance_moved == 23.0 * 10
-    )  # (15 + 8) * 10cm per logical unit
+    # Check hardware movements (distances directly in cm)
+    assert hardware.total_distance_moved == 23.0  # (15 + 8) cm
     assert len(hardware.movement_history) == 2
-    assert hardware.movement_history[0] == 15.0 * 10  # 150cm
-    assert hardware.movement_history[1] == 8.0 * 10  # 80cm
+    assert hardware.movement_history[0] == 15.0  # 15cm
+    assert hardware.movement_history[1] == 8.0  # 8cm
