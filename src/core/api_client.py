@@ -95,7 +95,7 @@ class CarAPIClient:
         speed: int = 100,
         distance: Optional[float] = None,
         time_ms: Optional[int] = None,
-        check_ultrasonic: bool = False,
+        check_ultrasonic: bool = True,
         enable_yaw_correction: bool = True,
     ) -> CarResponse:
         """Move the car forward or backward.

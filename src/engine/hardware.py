@@ -130,7 +130,7 @@ class CarHardware:
             f"Moving car {distance_cm}cm at speed {speed}",
             speed=speed,
             distance=abs(distance_cm),
-            enable_yaw_correction=True,
+            check_ultrasonic=True,
         )
         return success
 
