@@ -202,18 +202,28 @@ class CarHardware:
         result, success = await self._safe_api_call(
             self.api_client.get_ir_data,
             "Reading IR sensor",
-            action="black_obstacle",
         )
 
         logger.debug(
             f"⚫ IR sensor - success: {success}, result: {result}, type: {type(result).__name__}"
         )
 
-        if success and isinstance(result, bool):
-            logger.debug(f"⚫ IR sensor returning: {result}")
-            return result
+        if success and isinstance(result, str):
+            if result == "1":
+                logger.debug("⚫ IR sensor returning True (from '1')")
+                return True
+            elif result == "0":
+                logger.debug("⚫ IR sensor returning False (from '0')")
+                return False
+            else:
+                logger.warning(
+                    f"⚫ IR sensor - unexpected string result '{result}', returning False"
+                )
+                return False
         else:
-            logger.warning("⚫ IR sensor - invalid result, returning False")
+            logger.warning(
+                "⚫ IR sensor - API call failed or invalid result type, returning False"
+            )
             return False
 
     async def control_buzzer(self, action: str) -> bool:

@@ -182,16 +182,13 @@ class CarAPIClient:
 
         return await self._post("/api/sensor", data)
 
-    async def get_ir_data(self, action: str = "black_obstacle") -> CarResponse:
+    async def get_ir_data(self) -> CarResponse:
         """Get IR sensor data.
-
-        Args:
-            action: IR sensor action (currently only "black_obstacle")
 
         Returns:
             CarResponse with IR sensor data
         """
-        data: Dict[str, Union[str, int, float, bool]] = {"action": action}
+        data: Dict[str, Union[str, int, float, bool]] = {"action": "black_obstacle"}
         return await self._post("/api/ir", data)
 
     async def get_gyro_data(self, action: str = "data") -> CarResponse:
@@ -288,7 +285,9 @@ class MockCarAPIClient(CarAPIClient):
                 )
 
         elif endpoint == "/api/ir":
-            return CarResponse(success=True, result=self.black_detected)
+            # Return "1" or "0" strings like the real ESP32
+            result_value = "1" if self.black_detected else "0"
+            return CarResponse(success=True, result=result_value)
 
         elif endpoint == "/api/gyro":
             action = data.get("action")

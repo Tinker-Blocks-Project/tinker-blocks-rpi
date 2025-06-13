@@ -88,16 +88,16 @@ async def test_mock_car_api_client_sensors():
     assert response.success is True
     assert response.result is True  # 50 < 60
 
-    # Test IR sensor
+    # Test IR sensor (now returns "0"/"1" strings like real ESP32)
     response = await mock_client.get_ir_data()
     assert response.success is True
-    assert response.result is False  # Default mock value
+    assert response.result == "0"  # Default mock value (string "0")
 
     # Change mock IR value
     mock_client.black_detected = True
     response = await mock_client.get_ir_data()
     assert response.success is True
-    assert response.result is True
+    assert response.result == "1"  # Black detected (string "1")
 
 
 @pytest.mark.asyncio
