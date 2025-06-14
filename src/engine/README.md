@@ -103,7 +103,7 @@ WHILE | X < 10
     MOVE | 1
     SET | X | X + 1
 
-WHILE | DISTANCE > 30
+WHILE | DISTANCE > 15
     MOVE | 1
 
 WHILE | NOT OBSTACLE
@@ -129,7 +129,7 @@ ELSE
 IF | X > 10
     SET | Y | 0
 
-IF | DISTANCE < 30 AND BLACK_DETECTED
+IF | DISTANCE < 15 AND BLACK_DETECTED
     TURN | LEFT
 ```
 
@@ -151,7 +151,7 @@ SET | SPEED | 10
 SET | Y | DISTANCE
 SET | Z | X + 2
 SET | COUNT | COUNT + 1
-SET | FOUND | DISTANCE < 30
+SET | FOUND | DISTANCE < 15
 ```
 
 ### Drawing Commands
@@ -225,7 +225,7 @@ IF | OBSTACLE
 
 ### Sensor Values
 - **DISTANCE**: Ultrasonic sensor reading in cm
-- **OBSTACLE**: True if distance < 30cm
+- **OBSTACLE**: True if distance < 15cm
 - **BLACK_DETECTED**: True if IR sensor detects black
 - **BLACK_LOST**: Inverse of BLACK_DETECTED
 
@@ -261,7 +261,7 @@ Expressions are evaluated left-to-right with these rules:
 **Examples**:
 ```
 X + 5                    # Add 5 to X
-DISTANCE < 30            # Compare distance to 30
+DISTANCE < 15            # Compare distance to 15
 X > 5 AND Y < 10        # Logical AND of two comparisons
 NOT OBSTACLE            # Invert obstacle detection
 COUNT + 1               # Increment expression
@@ -344,7 +344,7 @@ LOOP | 10
 ### Sensor-Based Navigation
 ```
 WHILE | TRUE
-    WHILE | DISTANCE > 30
+    WHILE | DISTANCE > 15
         MOVE | 1
     IF | DISTANCE < 10
         MOVE | -2
