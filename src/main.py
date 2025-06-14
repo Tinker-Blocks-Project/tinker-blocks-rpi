@@ -29,10 +29,9 @@ async def handle_run_command(params: dict[str, Any] | None = None):
     if workflow_name == "ocr_grid":
         # Run OCR grid workflow
         success, grid_data = await controller.run_workflow(
-            lambda send_message, check_cancelled: ocr_grid_workflow(
+            lambda send_message: ocr_grid_workflow(
                 ocr_engine=ocr_engine,
                 send_message=send_message,
-                check_cancelled=check_cancelled,
             ),
             "OCR Grid Processing",
         )
@@ -48,9 +47,8 @@ async def handle_run_command(params: dict[str, Any] | None = None):
             )
             use_hardware = params.get("use_hardware", False)
             success, _ = await controller.run_workflow(
-                lambda send_message, check_cancelled: engine_workflow(
+                lambda send_message: engine_workflow(
                     send_message=send_message,
-                    check_cancelled=check_cancelled,
                     grid_data=grid_data.blocks if grid_data else None,
                     use_hardware=use_hardware,
                 ),
@@ -69,9 +67,8 @@ async def handle_run_command(params: dict[str, Any] | None = None):
                 grid_data = controller.last_result
 
         success, _ = await controller.run_workflow(
-            lambda send_message, check_cancelled: engine_workflow(
+            lambda send_message: engine_workflow(
                 send_message=send_message,
-                check_cancelled=check_cancelled,
                 grid_data=grid_data,
                 use_hardware=use_hardware,
             ),
@@ -81,10 +78,9 @@ async def handle_run_command(params: dict[str, Any] | None = None):
     elif workflow_name == "full":
         # Run full pipeline: OCR -> Engine
         success, grid_data = await controller.run_workflow(
-            lambda send_message, check_cancelled: ocr_grid_workflow(
+            lambda send_message: ocr_grid_workflow(
                 ocr_engine=ocr_engine,
                 send_message=send_message,
-                check_cancelled=check_cancelled,
                 use_image_path="/Users/izzat/Projects/TinkerBlocks/tinker-blocks-rpi/output/day2/20250612_180851/rotated_original.jpg",
             ),
             "OCR Grid Processing",
@@ -96,9 +92,8 @@ async def handle_run_command(params: dict[str, Any] | None = None):
             )
             use_hardware = params.get("use_hardware", False) if params else False
             success, _ = await controller.run_workflow(
-                lambda send_message, check_cancelled: engine_workflow(
+                lambda send_message: engine_workflow(
                     send_message=send_message,
-                    check_cancelled=check_cancelled,
                     grid_data=grid_data.blocks,
                     use_hardware=use_hardware,
                 ),
@@ -116,9 +111,8 @@ async def handle_stop_command():
     if not controller:
         return
 
-    if controller.is_running:
-        controller.cancel()
-        await controller.send_message("Stopping process...", LogLevel.INFO)
+    if controller.is_running or controller.is_cancelling:
+        await controller.cancel()
     else:
         await controller.send_message("No active process to stop", LogLevel.WARNING)
 

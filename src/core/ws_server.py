@@ -1,3 +1,4 @@
+import asyncio
 import json
 import websockets
 from typing import Callable, Awaitable
@@ -46,9 +47,11 @@ async def handler(websocket):
                 command = data.get("command")
 
                 if command and _command_processor:
-                    # Process command through the registered processor
+                    # Process command concurrently - don't wait for completion
                     params = data.get("params", {})
-                    await _command_processor(command, params)
+                    # Create task from the coroutine returned by calling the processor
+                    # Type ignore: _command_processor returns a coroutine when called
+                    asyncio.create_task(_command_processor(command, params))  # type: ignore
                 else:
                     await websocket.send(
                         json.dumps({"error": "No command processor registered"})

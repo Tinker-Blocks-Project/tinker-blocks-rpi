@@ -27,13 +27,13 @@ async def test_engine_workflow_with_mock_hardware():
     # Execute with mock hardware
     result = await engine_workflow(
         capture_messages,
-        lambda: False,
         grid,
         use_hardware=False,  # Use mock hardware
     )
 
     assert result["success"] is True
-    assert "Using mock hardware" in str(messages)
+    assert result["final_state"]["position"]["x"] == 5  # Moved right after turn
+    assert result["final_state"]["position"]["y"] == 10  # Initial forward move
 
 
 @pytest.mark.asyncio
@@ -46,7 +46,7 @@ async def test_hardware_integration_movement_tracking():
 
     # Create mock hardware
     hardware = MockHardware()
-    executor = Executor(capture_messages, lambda: False, hardware=hardware)
+    executor = Executor(capture_messages, hardware=hardware)
 
     # Execute movement commands
     commands = [
@@ -58,7 +58,7 @@ async def test_hardware_integration_movement_tracking():
     # Filter out None commands
     valid_commands = [cmd for cmd in commands if cmd is not None]
 
-    context = await executor.execute(valid_commands)
+    await executor.execute(valid_commands)
 
     # Check hardware movements (distances directly in cm)
     assert hardware.total_distance_moved == 23.0  # (15 + 8) cm

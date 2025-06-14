@@ -16,7 +16,6 @@ class Executor:
     def __init__(
         self,
         send_message: Callable[[str, LogLevel], Awaitable[None]] | None = None,
-        check_cancelled: Callable[[], bool] | None = None,
         sensors: SensorInterface | None = None,
         hardware: Union["HardwareInterface", None] = None,
     ):
@@ -24,12 +23,10 @@ class Executor:
 
         Args:
             send_message: Callback for sending status messages
-            check_cancelled: Callback for checking if execution should be cancelled
             sensors: Sensor interface for getting sensor readings
             hardware: Hardware interface for actual car control
         """
         self.send_message = send_message
-        self.check_cancelled = check_cancelled
         self.sensors = sensors
         self.hardware = hardware
 
@@ -45,7 +42,6 @@ class Executor:
         # Create execution context
         context = ExecutionContext()
         context.send_message = self.send_message
-        context.check_cancelled = self.check_cancelled
 
         if self.sensors:
             context.sensors = self.sensors
@@ -53,28 +49,11 @@ class Executor:
         if self.hardware:
             context.hardware = self.hardware
 
-        # Execute each command
-        try:
-            for command in commands:
-                # Check for cancellation
-                if self.check_cancelled and self.check_cancelled():
-                    if self.send_message:
-                        await self.send_message(
-                            "Execution cancelled by user", LogLevel.WARNING
-                        )
-                    break
-
-                # Execute the command
-                await command.execute(context)
-
-        except Exception as e:
-            if self.send_message:
-                await self.send_message(f"Execution error: {str(e)}", LogLevel.ERROR)
-            raise
+        for command in commands:
+            await command.execute(context)
 
         return context
 
-    # Extra
     async def execute_single(
         self,
         command: Command,
@@ -94,7 +73,6 @@ class Executor:
 
         # Always set the callbacks
         context.send_message = self.send_message
-        context.check_cancelled = self.check_cancelled
 
         if self.sensors:
             context.sensors = self.sensors

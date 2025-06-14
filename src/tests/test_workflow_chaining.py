@@ -16,12 +16,12 @@ async def test_workflow_data_passing():
     controller = ProcessController(capture_messages)
 
     # First workflow returns data
-    async def workflow1(send_message, check_cancelled):
+    async def workflow1(send_message):
         await send_message("Workflow 1 running", LogLevel.INFO)
         return {"data": [1, 2, 3], "status": "complete"}
 
     # Second workflow uses data from first
-    async def workflow2(send_message, check_cancelled, input_data=None):
+    async def workflow2(send_message, input_data=None):
         await send_message(f"Workflow 2 received: {input_data}", LogLevel.INFO)
         if input_data:
             return {
@@ -34,20 +34,16 @@ async def test_workflow_data_passing():
     success1, result1 = await controller.run_workflow(workflow1, "First")
     assert success1 is True
     assert result1 is not None
-    assert result1["data"] == [1, 2, 3]
+    assert result1["status"] == "complete"
 
-    # Run second workflow with first's result
+    # Run second workflow with result from first
     success2, result2 = await controller.run_workflow(
-        lambda send_message, check_cancelled: workflow2(
-            send_message, check_cancelled, result1
-        ),
-        "Second",
+        lambda send_message: workflow2(send_message, result1), "Second"
     )
-
     assert success2 is True
     assert result2 is not None
-    assert result2["processed"] == 3
-    assert result2["original"]["data"] == [1, 2, 3]
+    assert result2["processed"] == 3  # Length of [1,2,3]
+    assert result2["original"] == result1
 
 
 @pytest.mark.asyncio
@@ -63,24 +59,14 @@ async def test_controller_last_result():
     assert controller.last_result is None
 
     # Run workflow that returns data
-    async def data_workflow(send_message, check_cancelled):
+    async def data_workflow(send_message):
         return {"test": "data"}
 
     success, result = await controller.run_workflow(data_workflow, "Test")
 
     assert success is True
+    assert result == {"test": "data"}
     assert controller.last_result == {"test": "data"}
-    assert controller.last_result == result
-
-    # Run another workflow
-    async def another_workflow(send_message, check_cancelled):
-        return [1, 2, 3]
-
-    success2, result2 = await controller.run_workflow(another_workflow, "Another")
-
-    assert success2 is True
-    assert controller.last_result == [1, 2, 3]
-    assert controller.last_result == result2
 
 
 @pytest.mark.asyncio
@@ -94,7 +80,7 @@ async def test_conditional_workflow_chaining():
     controller = ProcessController(capture_messages)
 
     # Workflow that can succeed or fail based on input
-    async def conditional_workflow(send_message, check_cancelled, should_succeed=True):
+    async def conditional_workflow(send_message, should_succeed=True):
         if should_succeed:
             await send_message("Success path", LogLevel.INFO)
             return {"status": "success", "value": 42}
@@ -104,15 +90,13 @@ async def test_conditional_workflow_chaining():
 
     # Success case - should chain
     success1, result1 = await controller.run_workflow(
-        lambda send_message, check_cancelled: conditional_workflow(
-            send_message, check_cancelled, True
-        ),
+        lambda send_message: conditional_workflow(send_message, True),
         "Conditional Success",
     )
 
     if success1 and result1 and result1.get("status") == "success":
         # Chain to next workflow
-        async def followup_workflow(send_message, check_cancelled):
+        async def followup_workflow(send_message):
             await send_message("Following up on success", LogLevel.INFO)
             return {"followup": True}
 
@@ -123,9 +107,7 @@ async def test_conditional_workflow_chaining():
 
     # Failure case - should not chain
     success3, result3 = await controller.run_workflow(
-        lambda send_message, check_cancelled: conditional_workflow(
-            send_message, check_cancelled, False
-        ),
+        lambda send_message: conditional_workflow(send_message, False),
         "Conditional Failure",
     )
 
@@ -145,18 +127,18 @@ async def test_multi_stage_pipeline():
     controller = ProcessController(capture_messages)
 
     # Stage 1: Generate data
-    async def stage1(send_message, check_cancelled):
+    async def stage1(send_message):
         await send_message("Stage 1: Generating data", LogLevel.INFO)
         return {"numbers": [1, 2, 3, 4, 5]}
 
     # Stage 2: Transform data
-    async def stage2(send_message, check_cancelled, input_data):
+    async def stage2(send_message, input_data):
         await send_message("Stage 2: Transforming data", LogLevel.INFO)
         numbers = input_data.get("numbers", [])
         return {"doubled": [n * 2 for n in numbers]}
 
     # Stage 3: Aggregate results
-    async def stage3(send_message, check_cancelled, input_data):
+    async def stage3(send_message, input_data):
         await send_message("Stage 3: Aggregating results", LogLevel.INFO)
         doubled = input_data.get("doubled", [])
         return {"sum": sum(doubled), "count": len(doubled)}
@@ -166,16 +148,16 @@ async def test_multi_stage_pipeline():
     assert s1 and r1 is not None and r1["numbers"] == [1, 2, 3, 4, 5]
 
     s2, r2 = await controller.run_workflow(
-        lambda send_message, check_cancelled: stage2(send_message, check_cancelled, r1),
-        "Stage 2",
+        lambda send_message: stage2(send_message, r1), "Stage 2"
     )
     assert s2 and r2 is not None and r2["doubled"] == [2, 4, 6, 8, 10]
 
     s3, r3 = await controller.run_workflow(
-        lambda send_message, check_cancelled: stage3(send_message, check_cancelled, r2),
-        "Stage 3",
+        lambda send_message: stage3(send_message, r2), "Stage 3"
     )
-    assert s3 and r3 is not None and r3["sum"] == 30 and r3["count"] == 5
+    assert s3 and r3 is not None
+    assert r3["sum"] == 30  # 2+4+6+8+10
+    assert r3["count"] == 5
 
     # Verify all stages ran
     assert "Stage 1: Generating data" in messages

@@ -104,9 +104,12 @@ cd tinker-blocks-rpi
 # Install dependencies
 poetry install
 
-# Set up environment variables (for AI OCR)
+# Set up environment variables
+# For OCR
 export OPENAI_API_KEY="your-api-key"
 export ANTHROPIC_API_KEY="your-api-key"
+# For Car API
+export CAR_API_URL="your-car-api-url" # from ESP32 car
 
 # Activate environment
 poetry shell

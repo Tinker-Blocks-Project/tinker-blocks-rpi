@@ -61,12 +61,8 @@ class WaitCommand(Command):
                 f"⏱️ Waiting for {wait_time} seconds...", LogLevel.INFO
             )
 
-        # Wait with cancellation support
-        start_time = asyncio.get_event_loop().time()
-        while asyncio.get_event_loop().time() - start_time < wait_time:
-            if context.check_cancelled and context.check_cancelled():
-                break
-            await asyncio.sleep(0.1)  # Check every 100ms
+        # Simple sleep - asyncio.CancelledError will propagate naturally
+        await asyncio.sleep(wait_time)
 
         context.increment_steps()
 

@@ -1,7 +1,7 @@
 """API client for communicating with the ESP32 car."""
 
 import asyncio
-import requests
+import aiohttp
 from typing import Any, Dict, Optional, Union
 from dataclasses import dataclass
 import logging
@@ -51,40 +51,44 @@ class CarAPIClient:
         try:
             logger.debug(f"Sending POST to {url} with data: {data}")
 
-            # Run requests in executor to avoid blocking the event loop
-            loop = asyncio.get_event_loop()
-            response = await loop.run_in_executor(
-                None, lambda: requests.post(url, json=data, timeout=self.timeout)
-            )
+            # Use aiohttp for proper async HTTP that can be cancelled
+            timeout = aiohttp.ClientTimeout(total=self.timeout)
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                async with session.post(url, json=data) as response:
+                    response_text = await response.text()
+                    logger.debug(f"Received response: {response_text}")
 
-            logger.debug(f"Received response: {response.text}")
+                    if response.status == 200:
+                        response_data = await response.json()
+                        logger.debug(f"Parsed JSON response: {response_data}")
 
-            if response.status_code == 200:
-                response_data = response.json()
-                logger.debug(f"Parsed JSON response: {response_data}")
+                        # Try both "result" and "success_result" keys for backward compatibility
+                        result = response_data.get("result") or response_data.get(
+                            "success_result"
+                        )
 
-                # Try both "result" and "success_result" keys for backward compatibility
-                result = response_data.get("result") or response_data.get(
-                    "success_result"
-                )
+                        return CarResponse(
+                            success=response_data.get("success", False),
+                            result=result,
+                            error=response_data.get("error", ""),
+                        )
+                    else:
+                        return CarResponse(
+                            success=False,
+                            error=f"HTTP {response.status}: {response_text}",
+                        )
 
-                return CarResponse(
-                    success=response_data.get("success", False),
-                    result=result,
-                    error=response_data.get("error", ""),
-                )
-            else:
-                return CarResponse(
-                    success=False, error=f"HTTP {response.status_code}: {response.text}"
-                )
-
-        except requests.exceptions.Timeout:
+        except asyncio.TimeoutError:
             logger.error(f"Timeout connecting to {url}")
             return CarResponse(success=False, error="Connection timeout")
 
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Request error connecting to {url}: {e}")
+        except aiohttp.ClientError as e:
+            logger.error(f"Client error connecting to {url}: {e}")
             return CarResponse(success=False, error=f"Connection error: {e}")
+
+        except asyncio.CancelledError:
+            logger.info(f"Request to {url} was cancelled")
+            raise  # Re-raise to allow proper cancellation handling
 
         except Exception as e:
             logger.error(f"Unexpected error calling {url}: {e}")

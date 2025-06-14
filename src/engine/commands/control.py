@@ -1,5 +1,6 @@
 """Control flow commands: LOOP, WHILE, IF, ELSE."""
 
+import asyncio
 from typing import ClassVar
 from dataclasses import dataclass, field
 from core.types import LogLevel
@@ -58,15 +59,12 @@ class LoopCommand(Command):
         if isinstance(count, bool):
             if count:  # TRUE = infinite loop
                 while True:
-                    # Check cancellation
-                    if context.check_cancelled and context.check_cancelled():
-                        break
-
                     # Execute nested commands
                     for command in self.nested_commands:
-                        if context.check_cancelled and context.check_cancelled():
-                            break
                         await command.execute(context)
+
+                    # Yield control to allow cancellation
+                    await asyncio.sleep(0)
 
                     # Check for runaway execution
                     if context.steps_executed > context.max_steps:
@@ -77,15 +75,12 @@ class LoopCommand(Command):
             # Fixed count loop
             iterations = int(count)
             for i in range(iterations):
-                # Check cancellation
-                if context.check_cancelled and context.check_cancelled():
-                    break
-
                 # Execute nested commands
                 for command in self.nested_commands:
-                    if context.check_cancelled and context.check_cancelled():
-                        break
                     await command.execute(context)
+
+                # Yield control to allow cancellation
+                await asyncio.sleep(0)
         else:
             raise ValueError(
                 f"Loop count must be a number or boolean, got {type(count)}"
@@ -129,10 +124,6 @@ class WhileCommand(Command):
 
         # WHILE condition loop
         while True:
-            # Check cancellation
-            if context.check_cancelled and context.check_cancelled():
-                break
-
             # Evaluate condition
             if context.send_message:
                 await context.send_message(
@@ -150,9 +141,10 @@ class WhileCommand(Command):
 
             # Execute nested commands
             for command in self.nested_commands:
-                if context.check_cancelled and context.check_cancelled():
-                    break
                 await command.execute(context)
+
+            # Yield control to allow cancellation
+            await asyncio.sleep(0)
 
             # Check for runaway execution
             if context.steps_executed > context.max_steps:
@@ -214,14 +206,10 @@ class IfCommand(Command):
         if condition_result:
             # Execute IF block
             for command in self.nested_commands:
-                if context.check_cancelled and context.check_cancelled():
-                    break
                 await command.execute(context)
         else:
             # Execute ELSE block if present
             for command in self.else_commands:
-                if context.check_cancelled and context.check_cancelled():
-                    break
                 await command.execute(context)
 
     def __repr__(self) -> str:

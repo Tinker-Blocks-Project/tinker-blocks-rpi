@@ -21,9 +21,7 @@ async def test_engine_with_no_grid():
 
     # Run engine with no grid
     success, result = await controller.run_workflow(
-        lambda send_message, check_cancelled: engine_workflow(
-            send_message, check_cancelled, None
-        ),
+        lambda send_message: engine_workflow(send_message, None),
         "Engine No Grid",
     )
 
@@ -51,9 +49,7 @@ async def test_engine_with_invalid_commands():
     ]
 
     success, result = await controller.run_workflow(
-        lambda send_message, check_cancelled: engine_workflow(
-            send_message, check_cancelled, invalid_grid
-        ),
+        lambda send_message: engine_workflow(send_message, invalid_grid),
         "Invalid Commands",
     )
 
@@ -76,7 +72,7 @@ async def test_workflow_exception_handling():
     controller = ProcessController(capture_messages)
 
     # Workflow that throws exception
-    async def failing_workflow(send_message, check_cancelled):
+    async def failing_workflow(send_message):
         await send_message("About to fail...", LogLevel.INFO)
         raise RuntimeError("Catastrophic failure!")
 
@@ -98,17 +94,12 @@ async def test_workflow_timeout_simulation():
 
     controller = ProcessController(capture_messages)
 
-    async def slow_workflow(send_message, check_cancelled):
+    async def slow_workflow(send_message):
         nonlocal cancelled
         await send_message("Starting slow task...", LogLevel.INFO)
 
         # Simulate long running task with cancellation checks
         for i in range(100):
-            if check_cancelled():
-                cancelled = True
-                await send_message("Task cancelled during execution", LogLevel.INFO)
-                return None
-
             if i % 10 == 0:
                 await send_message(f"Progress: {i}%", LogLevel.INFO)
 
@@ -121,7 +112,7 @@ async def test_workflow_timeout_simulation():
     task = asyncio.create_task(controller.run_workflow(slow_workflow, "Slow Task"))
 
     await asyncio.sleep(0.02)  # Increased to ensure it starts
-    controller.cancel()
+    await controller.cancel()
 
     success, result = await task
 
@@ -154,9 +145,7 @@ async def test_ocr_workflow_with_missing_image():
         mock_ocr = AsyncMock()
 
         success, result = await controller.run_workflow(
-            lambda send_message, check_cancelled: ocr_grid_workflow(
-                mock_ocr, send_message, check_cancelled
-            ),
+            lambda send_message: ocr_grid_workflow(mock_ocr, send_message),
             "Missing Image Test",
         )
 
@@ -178,7 +167,7 @@ async def test_concurrent_workflow_attempts():
 
     controller = ProcessController(capture_messages)
 
-    async def slow_workflow(send_message, check_cancelled):
+    async def slow_workflow(send_message):
         await send_message("Slow workflow started", LogLevel.INFO)
         await asyncio.sleep(0.1)
         await send_message("Slow workflow finished", LogLevel.INFO)
@@ -233,9 +222,7 @@ async def test_empty_and_edge_case_grids():
         messages.clear()
 
         success, result = await controller.run_workflow(
-            lambda send_message, check_cancelled, g=grid: engine_workflow(
-                send_message, check_cancelled, g
-            ),
+            lambda send_message: engine_workflow(send_message, grid),
             description,
         )
 

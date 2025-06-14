@@ -59,9 +59,7 @@ async def test_ocr_workflow_full_execution():
 
         # Run workflow
         success, result = await controller.run_workflow(
-            lambda send_message, check_cancelled: ocr_grid_workflow(
-                mock_ocr, send_message, check_cancelled
-            ),
+            lambda send_message: ocr_grid_workflow(mock_ocr, send_message),
             "OCR Grid Test",
         )
 
@@ -107,9 +105,7 @@ async def test_engine_workflow_execution():
 
     # Run workflow
     success, result = await controller.run_workflow(
-        lambda send_message, check_cancelled: engine_workflow(
-            send_message, check_cancelled, test_grid
-        ),
+        lambda send_message: engine_workflow(send_message, test_grid),
         "Engine Test",
     )
 
@@ -171,9 +167,7 @@ async def test_full_pipeline_workflow():
 
         # Run Engine workflow with the grid
         success2, engine_result = await controller.run_workflow(
-            lambda send_message, check_cancelled: engine_workflow(
-                send_message, check_cancelled, grid_result.blocks
-            ),
+            lambda send_message: engine_workflow(send_message, grid_result.blocks),
             "Engine Phase",
         )
 
@@ -192,16 +186,11 @@ async def test_workflow_cancellation_propagation():
     async def capture_messages(msg, level):
         messages.append(msg)
 
-    async def long_workflow(send_message, check_cancelled):
+    async def long_workflow(send_message):
         nonlocal cancelled
         await send_message("Starting long task...", LogLevel.INFO)
 
         for i in range(10):
-            if check_cancelled():
-                cancelled = True
-                await send_message("Detected cancellation", LogLevel.INFO)
-                return {"cancelled": True}
-
             await send_message(f"Step {i}", LogLevel.INFO)
             await asyncio.sleep(0.01)
 
@@ -218,7 +207,7 @@ async def test_workflow_cancellation_propagation():
     await asyncio.sleep(0.05)  # Increased from 0.03
 
     # Cancel it
-    controller.cancel()
+    await controller.cancel()
 
     # Wait for completion
     success, result = await task
@@ -245,9 +234,7 @@ async def test_workflow_with_empty_grid():
     ]
 
     success, result = await controller.run_workflow(
-        lambda send_message, check_cancelled: engine_workflow(
-            send_message, check_cancelled, empty_grid
-        ),
+        lambda send_message: engine_workflow(send_message, empty_grid),
         "Empty Grid Test",
     )
 

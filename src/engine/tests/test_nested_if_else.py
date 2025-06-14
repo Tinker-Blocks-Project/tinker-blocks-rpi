@@ -36,11 +36,11 @@ async def test_triple_nested_if_else_all_true():
         ["", "MOVE", "-1"],  # Row 14:   Move -1 (outer else)
     ]
 
-    result = await engine_workflow(capture_messages, lambda: False, grid)
+    result = await engine_workflow(capture_messages, grid)
 
     assert result["success"] is True
-    # Path: Outer TRUE -> Middle TRUE -> Inner TRUE
-    # Expected moves: 1 + 2 + 3 = 6
+    # Should execute: MOVE 1, MOVE 2, MOVE 3
+    # Expected position: y = 1 + 2 + 3 = 6
     assert result["final_state"]["position"]["y"] == 6
     assert result["final_state"]["variables"]["A"] == 10
     assert result["final_state"]["variables"]["B"] == 5
@@ -74,7 +74,7 @@ async def test_triple_nested_if_else_outer_false():
         ["", "MOVE", "-1"],  # Row 14:   Move -1 (outer else) - EXECUTED
     ]
 
-    result = await engine_workflow(capture_messages, lambda: False, grid)
+    result = await engine_workflow(capture_messages, grid)
 
     assert result["success"] is True
     # Path: Outer FALSE -> Outer ELSE only
@@ -110,7 +110,7 @@ async def test_triple_nested_if_else_middle_false():
         ["", "MOVE", "-1"],  # Row 14:   Move -1 - NOT EXECUTED
     ]
 
-    result = await engine_workflow(capture_messages, lambda: False, grid)
+    result = await engine_workflow(capture_messages, grid)
 
     assert result["success"] is True
     # Path: Outer TRUE -> Middle FALSE -> Middle ELSE
@@ -146,7 +146,7 @@ async def test_triple_nested_if_else_inner_false():
         ["", "MOVE", "-1"],  # Row 14:   Move -1 - NOT EXECUTED
     ]
 
-    result = await engine_workflow(capture_messages, lambda: False, grid)
+    result = await engine_workflow(capture_messages, grid)
 
     assert result["success"] is True
     # Path: Outer TRUE -> Middle TRUE -> Inner FALSE -> Inner ELSE
@@ -183,7 +183,7 @@ async def test_triple_nested_if_else_with_variables():
         ["", "SET", "RESULT", "RESULT", "-", "100"],  # Row 15:   RESULT -= 100
     ]
 
-    result = await engine_workflow(capture_messages, lambda: False, grid)
+    result = await engine_workflow(capture_messages, grid)
 
     assert result["success"] is True
     # Path: Outer TRUE -> Middle TRUE -> Inner TRUE
@@ -247,7 +247,7 @@ async def test_triple_nested_if_else_parse_structure():
     assert len(inner_if.else_commands) == 1  # Inner ELSE has MOVE -3
 
     # Execute to verify behavior
-    result = await engine_workflow(capture_messages, lambda: False, grid)
+    result = await engine_workflow(capture_messages, grid)
     assert result["success"] is True
     # All TRUE: 1 + 2 + 3 = 6
     assert result["final_state"]["position"]["y"] == 6
@@ -266,7 +266,7 @@ async def test_triple_nested_if_else_with_sensors():
     sensors.distance = 15.0  # Will trigger obstacle detection (< 30)
     sensors.black_detected = True
 
-    executor = Executor(capture_messages, lambda: False, sensors)
+    executor = Executor(capture_messages, sensors)
     context = ExecutionContext()
     context.sensors = sensors
 
@@ -352,7 +352,7 @@ async def test_complex_nested_structure_with_loops():
         ["", "MOVE", "-5"],  # Row 9:   Move -5
     ]
 
-    result = await engine_workflow(capture_messages, lambda: False, grid)
+    result = await engine_workflow(capture_messages, grid)
 
     assert result["success"] is True
     # Loop iteration 1: COUNT=0 < 1 (TRUE) -> MOVE 1, COUNT=1

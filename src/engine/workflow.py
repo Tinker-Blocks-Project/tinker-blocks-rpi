@@ -8,7 +8,6 @@ from .hardware import MockHardware, CarHardware
 
 async def engine_workflow(
     send_message: Callable[[str, LogLevel], Awaitable[None]],
-    check_cancelled: Callable[[], bool],
     grid_data: list[list[str]] | None = None,
     use_hardware: bool = False,
 ) -> dict[str, Any]:
@@ -16,7 +15,6 @@ async def engine_workflow(
 
     Args:
         send_message: Callback for sending status messages
-        check_cancelled: Callback for checking if execution should be cancelled
         grid_data: 2D grid of programming blocks
         use_hardware: Whether to use real hardware API or mock hardware
 
@@ -89,7 +87,7 @@ async def engine_workflow(
         else:
             await send_message("🤖 Using mock hardware", LogLevel.INFO)
 
-        executor = Executor(send_message, check_cancelled, hardware=hardware)
+        executor = Executor(send_message, hardware=hardware)
         context = await executor.execute(commands)
 
         # Get final state

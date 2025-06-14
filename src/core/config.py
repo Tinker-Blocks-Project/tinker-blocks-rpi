@@ -1,4 +1,8 @@
 from pydantic import BaseModel
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 class Config(BaseModel):
@@ -17,7 +21,7 @@ class Config(BaseModel):
     ocr_server_port: int = 5000
 
     # Car API settings
-    car_api_url: str = "http://192.168.88.9"
+    car_api_url: str = f"http://{os.getenv('CAR_API_URL')}"
     car_api_timeout: float = 15.0
 
     # Grid detection corner points (hardcoded for current setup)

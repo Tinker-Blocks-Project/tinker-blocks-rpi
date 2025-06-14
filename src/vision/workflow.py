@@ -16,7 +16,6 @@ from vision.capture import capture_image_client
 async def ocr_grid_workflow(
     ocr_engine: OCRProtocol,
     send_message: Callable[[str, LogLevel], Awaitable[None]],
-    check_cancelled: Callable[[], bool],
     use_image_path: str | None = None,
 ) -> Grid:
     """
@@ -25,7 +24,6 @@ async def ocr_grid_workflow(
     Args:
         ocr_engine: OCR implementation that conforms to OCRProtocol
         send_message: Function to send status messages
-        check_cancelled: Function to check if process was cancelled
         use_image_path: Path to the image to process intead of capturing a new one (for debugging)
 
     Returns:
@@ -38,17 +36,11 @@ async def ocr_grid_workflow(
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     # Step 1: Capture image
-    if check_cancelled():
-        return Grid(blocks=[])
-
     await send_message("\n📸 Capturing image...", LogLevel.INFO)
     image_path = use_image_path or capture_image_client()
     await send_message(f"Using image: {image_path}", LogLevel.DEBUG)
 
     # Step 2: Load and process image
-    if check_cancelled():
-        return Grid(blocks=[])
-
     processing_start_time = time.time()
     await send_message("\n🔄 Processing image...", LogLevel.INFO)
     try:
@@ -76,9 +68,6 @@ async def ocr_grid_workflow(
         return Grid(blocks=[])
 
     # Step 3: Create perspective grid and apply transformation
-    if check_cancelled():
-        return Grid(blocks=[])
-
     await send_message("\n📐 Creating perspective grid...", LogLevel.INFO)
     grid = PerspectiveGrid(
         top_right=config.grid_corners["top_right"],
@@ -106,9 +95,6 @@ async def ocr_grid_workflow(
     processing_time = processing_end_time - processing_start_time
 
     # Step 4: Run OCR on transformed image
-    if check_cancelled():
-        return Grid(blocks=[])
-
     ocr_start_time = time.time()
     await send_message("\n🔍 Running OCR on transformed grid...", LogLevel.INFO)
     try:
