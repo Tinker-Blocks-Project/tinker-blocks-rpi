@@ -20,6 +20,9 @@ async def broadcast(message: str, level: LogLevel = LogLevel.INFO):
     Args:
         message: The message to send
         level: Log level - DEBUG goes to CLI only, others go to both UI and CLI
+
+    Note:
+        Messages sent to clients include both 'message' and 'level' fields in JSON format.
     """
     # Always print to console for CLI visibility
     print(message)
@@ -29,7 +32,9 @@ async def broadcast(message: str, level: LogLevel = LogLevel.INFO):
         # Create list copy to avoid modification during iteration
         for client in list(connected_clients):
             try:
-                await client.send(json.dumps({"message": message}))
+                await client.send(
+                    json.dumps({"message": message, "level": level.value})
+                )
             except Exception as e:
                 print(f"Error sending message to client: {e}")
                 connected_clients.discard(client)

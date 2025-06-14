@@ -18,10 +18,10 @@ core/
 ### WebSocket Server (`ws_server.py`)
 
 Real-time bidirectional communication server:
-- **Broadcast Support**: Send messages to all connected clients
+- **Broadcast Support**: Send messages to all connected clients with log levels
 - **Command Processing**: Extensible command handler registration
 - **Connection Management**: Track active connections
-- **JSON Protocol**: Command/response messaging
+- **JSON Protocol**: Command/response messaging with structured log levels
 
 ```python
 from core import start_ws_server, broadcast, set_command_processor
@@ -54,14 +54,10 @@ from core.types import LogLevel
 controller = ProcessController(broadcast)
 
 # Define a workflow
-async def my_workflow(send_message, check_cancelled):
+async def my_workflow(send_message):
     await send_message("Starting...", LogLevel.INFO)
     await send_message("Debug: initializing state", LogLevel.DEBUG)
     
-    if check_cancelled():
-        await send_message("Operation cancelled", LogLevel.WARNING)
-        return None
-        
     # Do work and return result
     await send_message("Work completed successfully", LogLevel.SUCCESS)
     return {"status": "complete", "data": [1, 2, 3]}
@@ -112,9 +108,13 @@ await broadcast("Critical failure", LogLevel.ERROR)         # UI + CLI
 **Enhanced Workflow Protocol:**
 All workflows now use the enhanced `send_message` signature:
 ```python
+from typing import Callable, Awaitable, TypeVar
+from core.types import LogLevel
+
+T = TypeVar('T')
+
 async def enhanced_workflow(
-    send_message: Callable[[str, LogLevel], Awaitable[None]],
-    check_cancelled: Callable[[], bool]
+    send_message: Callable[[str, LogLevel], Awaitable[None]]
 ) -> T:
     await send_message("Starting complex operation", LogLevel.INFO)
     await send_message("Debug: evaluating condition X", LogLevel.DEBUG)
@@ -126,48 +126,6 @@ async def enhanced_workflow(
 - **Production**: Clean user experience with appropriate messaging
 - **Monitoring**: Structured logging for different audiences
 - **Flexibility**: Easy to add logging anywhere in the system
-
-## 🏗️ Design Principles
-
-### Dependency Inversion
-The core module defines interfaces without depending on implementations:
-- Workflow protocol for process execution
-- Command processor registration
-- Message broadcasting interface
-
-### Clean Architecture
-- **No circular dependencies**: Core has zero imports from other modules
-- **Protocol-based**: Uses Python protocols for extensibility
-- **Async-first**: Built on asyncio for concurrent operations
-
-## 🔄 Workflow Protocol
-
-Workflows follow a simple async function signature with enhanced logging:
-
-```python
-from typing import Callable, Awaitable, TypeVar
-from core.types import LogLevel
-
-T = TypeVar('T')
-
-async def workflow(
-    send_message: Callable[[str, LogLevel], Awaitable[None]],
-    check_cancelled: Callable[[], bool]
-) -> T:
-    """
-    Args:
-        send_message: Async function to send status updates with log level
-        check_cancelled: Function to check if cancelled
-    
-    Returns:
-        Any data to pass to next workflow or None
-    """
-    await send_message("Starting workflow", LogLevel.INFO)
-    await send_message("Debug: internal state", LogLevel.DEBUG)
-    # ... workflow logic ...
-    await send_message("Workflow completed", LogLevel.SUCCESS)
-    pass
-```
 
 ## 🔌 WebSocket Protocol
 
@@ -189,8 +147,8 @@ The `params` field is optional. If omitted, an empty object `{}` is passed to th
 **Server → Client:**
 ```json
 {
-    "type": "status",
-    "message": "Processing image..."
+    "message": "Processing image...",
+    "level": "info"
 }
 ```
 
@@ -224,7 +182,6 @@ Default settings in `config.py`:
 
 The core module is designed for easy testing:
 - Mock send_message for workflow testing
-- Simple cancelled flag for cancellation testing
 - Isolated components with clear interfaces
 
 ## 🔒 Thread Safety
@@ -243,12 +200,13 @@ The core module is designed for easy testing:
 
 2. **Create workflows** (in other modules):
    ```python
-   async def my_workflow(send_message, check_cancelled):
-       await send_message("Starting workflow", LogLevel.INFO)
-       await send_message("Debug: processing data", LogLevel.DEBUG)
-       # Implementation
-       await send_message("Workflow completed", LogLevel.SUCCESS)
-       pass
+   async def my_workflow(send_message):
+       await send_message("Starting...", LogLevel.INFO)
+       await send_message("Debug: initializing state", LogLevel.DEBUG)
+       
+       # Do work and return result
+       await send_message("Work completed successfully", LogLevel.SUCCESS)
+       return {"status": "complete", "data": [1, 2, 3]}
    ```
 
 3. **Wire up in main.py**:
@@ -263,4 +221,44 @@ The core module is designed for easy testing:
 - **Parallel Execution**: Run independent workflows concurrently
 - **Client Authentication**: Secure WebSocket connections
 - **Metrics Collection**: Track workflow performance
-- **Plugin System**: Dynamic workflow registration 
+- **Plugin System**: Dynamic workflow registration
+
+## 🏗️ Design Principles
+
+### Dependency Inversion
+The core module defines interfaces without depending on implementations:
+- Workflow protocol for process execution
+- Command processor registration
+- Message broadcasting interface
+
+### Clean Architecture
+- **No circular dependencies**: Core has zero imports from other modules
+- **Protocol-based**: Uses Python protocols for extensibility
+- **Async-first**: Built on asyncio for concurrent operations
+
+## 🔄 Workflow Protocol
+
+Workflows follow a simple async function signature with enhanced logging:
+
+```python
+from typing import Callable, Awaitable, TypeVar
+from core.types import LogLevel
+
+T = TypeVar('T')
+
+async def workflow(
+    send_message: Callable[[str, LogLevel], Awaitable[None]]
+) -> T:
+    """
+    Args:
+        send_message: Async function to send status updates with log level
+    
+    Returns:
+        Any data to pass to next workflow or None
+    """
+    await send_message("Starting workflow", LogLevel.INFO)
+    await send_message("Debug: internal state", LogLevel.DEBUG)
+    # ... workflow logic ...
+    await send_message("Workflow completed", LogLevel.SUCCESS)
+    return result
+```

@@ -286,11 +286,10 @@ The engine supports a comprehensive set of commands for programming:
 ### Control Flow
 - **`LOOP`** - Repeat nested commands a specified number of times
   - `LOOP | 5` → Repeat 5 times
-  - `LOOP | TRUE` → Infinite loop (until max steps)
-  - `LOOP | FALSE` → No execution
   
 - **`WHILE`** - Repeat nested commands while a condition is true
   - `WHILE | condition` → Loop while condition is true
+  - `WHILE | TRUE` → Infinite loop
   
 - **`IF`** - Conditional execution
   - `IF | condition` → Execute nested commands if true
@@ -304,8 +303,8 @@ The engine supports a comprehensive set of commands for programming:
   - `SET | COUNTER | 0` → Variable names can be any alphabetic string
 
 ### Drawing
-- **`PEN_DOWN`** - Start drawing path
-- **`PEN_UP`** - Stop drawing path
+- **`PEN_ON`** - Start drawing path
+- **`PEN_OFF`** - Stop drawing path
 
 ### Utility
 - **`WAIT`** - Pause execution
@@ -316,7 +315,7 @@ The engine supports a comprehensive set of commands for programming:
 - **Numbers**: `5`, `3.14`, `-2`
 - **Booleans**: `TRUE`, `FALSE`
 - **Variables**: Any alphabetic string (e.g., `X`, `COUNT`, `DISTANCE_VAR`)
-- **Sensors**: `DISTANCE`, `OBSTACLE`, `BLACK_DETECTED`, `BLACK_LOST`
+- **Sensors**: `DISTANCE`, `OBSTACLE`, `BLACK_ON`, `BLACK_OFF`
 - **Operators**: `+`, `-`, `*`, `/`, `<`, `>`, `=`, `!=`, `AND`, `OR`, `NOT`
 
 ### Grid Layout

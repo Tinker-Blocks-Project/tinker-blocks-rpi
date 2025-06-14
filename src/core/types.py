@@ -11,3 +11,4 @@ class LogLevel(Enum):
     SUCCESS = "success"  # Both UI and CLI - successful operations
     WARNING = "warning"  # Both UI and CLI - warnings and recoverable errors
     ERROR = "error"  # Both UI and CLI - critical errors
+    ASSISTANT = "assistant"  # Both UI and CLI - AI assistant messages

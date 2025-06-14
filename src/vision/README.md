@@ -89,7 +89,6 @@ ocr_engine = VLM_OCR(chat_model)
 grid_result = await ocr_grid_workflow(
     ocr_engine=ocr_engine,
     send_message=send_message_func,
-    check_cancelled=check_cancelled_func
 )
 
 # Access results

@@ -6,6 +6,7 @@ from vision.workflow import ocr_grid_workflow
 from engine.workflow import engine_workflow
 from vision.ocr import VLM_OCR
 from core.chat_model import get_chat_model
+from assistant.workflow import assistant_workflow
 
 # Global controller instance
 controller: ProcessController | None = None
@@ -18,6 +19,8 @@ async def handle_run_command(params: dict[str, Any] | None = None):
     if not controller:
         print("Error: Process controller not initialized")
         return
+
+    assert controller is not None
 
     if controller.is_running:
         await controller.send_message("Process already running!", LogLevel.WARNING)
@@ -100,6 +103,20 @@ async def handle_run_command(params: dict[str, Any] | None = None):
                 "Engine Execution",
             )
 
+    elif workflow_name == "assistant":
+        # Run assistant workflow
+        user_message = params.get("message", "Hello!") if params else "Hello!"
+
+        success, result = await controller.run_workflow(
+            lambda send_message: assistant_workflow(
+                send_message=send_message,
+                user_message=user_message,
+                controller=controller,  # type: ignore
+                ocr_engine=ocr_engine,
+            ),
+            "AI Assistant",
+        )
+
     else:
         await controller.send_message(
             f"Unknown workflow: {workflow_name}", LogLevel.ERROR
@@ -148,6 +165,7 @@ async def main():
     print("  - ocr_grid: Run OCR grid processing only")
     print("  - engine: Run engine execution (requires grid data)")
     print("  - full: Run complete pipeline (OCR -> Engine)")
+    print("  - assistant: AI programming tutor for children")
     print("\nExample commands:")
     print('  {"command": "run", "params": {"workflow": "full"}}')
     print('  {"command": "run", "params": {"workflow": "full", "use_hardware": true}}')
@@ -156,6 +174,9 @@ async def main():
     )
     print(
         '  {"command": "run", "params": {"workflow": "engine", "use_hardware": true, "grid": [["MOVE", "10"], ["TURN", "RIGHT"]]}}'
+    )
+    print(
+        '  {"command": "run", "params": {"workflow": "assistant", "message": "How do I make my robot draw a square?"}}'
     )
     print('  {"command": "stop"}')
 
