@@ -37,7 +37,7 @@ async def ocr_grid_workflow(
 
     # Step 1: Capture image
     await send_message("\n📸 Capturing image...", LogLevel.INFO)
-    image_path = use_image_path or capture_image_client()
+    image_path = capture_image_client()
     await send_message(f"Using image: {image_path}", LogLevel.DEBUG)
 
     # Step 2: Load and process image
@@ -45,10 +45,7 @@ async def ocr_grid_workflow(
     await send_message("\n🔄 Processing image...", LogLevel.INFO)
     try:
         image = Image.from_file(image_path)  # type: ignore
-        if use_image_path is None:
-            rotated = image.rotate_90_clockwise()
-        else:
-            rotated = image
+        rotated = image.rotate_90_clockwise()
 
         # Create timestamped output folder early to save all processing images
         output_folder = f"{config.output_dir}/{timestamp}"

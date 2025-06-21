@@ -233,7 +233,7 @@ class ExpressionParser:
 
         # Look for comparison operators
         for i, token in enumerate(tokens):
-            if token in ("<", "<=", ">", ">=", "=", "!="):
+            if token in ("<", "<=", ">", ">=", "=", "!=", "=="):
                 left_expr = ExpressionParser.parse_tokens(tokens[:i])
                 right_expr = ExpressionParser.parse_tokens(tokens[i + 1 :])
                 if left_expr and right_expr:
@@ -243,6 +243,7 @@ class ExpressionParser:
                         ">": OperatorType.GREATER_THAN,
                         ">=": OperatorType.GREATER_EQUAL,
                         "=": OperatorType.EQUAL,
+                        "==": OperatorType.EQUAL,
                         "!=": OperatorType.NOT_EQUAL,
                     }
                     return Expression(left_expr, op_map[token], right_expr)

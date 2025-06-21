@@ -4,7 +4,7 @@ from core.types import LogLevel
 
 from .base import Command
 from ..context import ExecutionContext
-from ..values import Value, ValueParser, NumberValue, DirectionValue
+from ..values import Value, ValueParser, NumberValue, DirectionValue, ExpressionParser
 
 
 @dataclass
@@ -87,39 +87,36 @@ class TurnCommand(Command):
         - TURN | 45 (degrees - positive=right, negative=left)
         - TURN | LEFT | 45 (turn left by 45 degrees)
         - TURN | RIGHT | 30 (turn right by 30 degrees)
+        - TURN | A (where A is a variable)
+        - TURN | expr (where expr is an expression or variable)
         """
         if not tokens:
-            raise ValueError("TURN requires direction (LEFT or RIGHT) or degrees")
+            raise ValueError("TURN requires direction (LEFT or RIGHT) or degrees or variable/expression")
 
-        # Check if first token is a number (direct degrees)
-        try:
-            degrees = float(tokens[0])
-            self.direction = NumberValue(degrees)
+        # If two tokens: direction + degrees (e.g., TURN | LEFT | 45)
+        if len(tokens) == 2:
+            direction_val = ValueParser.parse(tokens[0])
+            degrees_val = ValueParser.parse(tokens[1])
+            if direction_val and isinstance(direction_val, DirectionValue) and degrees_val and isinstance(degrees_val, NumberValue):
+                # Compose a NumberValue with sign based on direction
+                deg = degrees_val.value
+                if direction_val.direction_name == "LEFT":
+                    deg = -abs(deg)
+                else:
+                    deg = abs(deg)
+                self.direction = NumberValue(deg)
+                return
+            # Otherwise, treat as expression
+            self.direction = ExpressionParser.parse_tokens(tokens)
             return
-        except ValueError:
-            pass
 
-        # Otherwise, expect LEFT or RIGHT
-        direction_str = tokens[0].upper()
-        if direction_str not in ("LEFT", "RIGHT"):
-            raise ValueError(f"TURN requires LEFT, RIGHT, or degrees, got: {tokens[0]}")
-
-        # Check for additional arguments
-        if len(tokens) >= 2:
-            # TURN | direction | degrees
-            try:
-                custom_degrees = float(tokens[1])
-                # Apply sign based on direction
-                if direction_str == "LEFT":
-                    custom_degrees = -abs(custom_degrees)
-                else:  # RIGHT
-                    custom_degrees = abs(custom_degrees)
-                self.direction = NumberValue(custom_degrees)
-            except ValueError:
-                raise ValueError(f"Invalid degrees value: {tokens[1]}")
-        else:
-            # Just direction, use default 90 degrees
-            self.direction = DirectionValue(direction_str)
+        # Otherwise, parse as a single value or expression
+        self.direction = ValueParser.parse(tokens[0])
+        if not self.direction:
+            # Try as expression
+            self.direction = ExpressionParser.parse_tokens(tokens)
+        if not self.direction:
+            raise ValueError(f"TURN argument not recognized: {' '.join(tokens)}")
 
     async def execute(self, context: ExecutionContext) -> None:
         """Execute the TURN command."""
@@ -131,26 +128,37 @@ class TurnCommand(Command):
         if not self.direction:
             raise ValueError("TURN command has no direction")
 
-        # Regular TURN with direction
+        # Evaluate the direction/expression/variable
         if context.send_message:
             await context.send_message(
                 f"⚙️ TURN evaluating direction: {self.direction}", LogLevel.DEBUG
             )
 
-        turn_degrees = await self.direction.evaluate(context)
+        turn_val = await self.direction.evaluate(context)
 
-        if isinstance(turn_degrees, (int, float)):
-            if context.send_message:
-                await context.send_message(f"🔄 Turning {turn_degrees}°", LogLevel.INFO)
-
-            await context.turn(float(turn_degrees))
-
-            if context.send_message:
-                await context.send_message(
-                    f"🧭 Now facing {context.direction.value}", LogLevel.DEBUG
-                )
+        # Acceptable: number (degrees), or string (LEFT/RIGHT)
+        if isinstance(turn_val, (int, float)):
+            turn_degrees = float(turn_val)
+        elif isinstance(turn_val, str):
+            turn_val_upper = turn_val.upper()
+            if turn_val_upper == "LEFT":
+                turn_degrees = -90.0
+            elif turn_val_upper == "RIGHT":
+                turn_degrees = 90.0
+            else:
+                raise ValueError(f"TURN variable/expression must resolve to LEFT, RIGHT, or degrees, got: {turn_val}")
         else:
-            raise ValueError(f"Invalid turn degrees: {turn_degrees}")
+            raise ValueError(f"TURN variable/expression must resolve to LEFT, RIGHT, or degrees, got: {turn_val}")
+
+        if context.send_message:
+            await context.send_message(f"🔄 Turning {turn_degrees}°", LogLevel.INFO)
+
+        await context.turn(turn_degrees)
+
+        if context.send_message:
+            await context.send_message(
+                f"🧭 Now facing {context.direction.value}", LogLevel.DEBUG
+            )
 
     def __repr__(self) -> str:
         return f"TurnCommand({self.direction})"
