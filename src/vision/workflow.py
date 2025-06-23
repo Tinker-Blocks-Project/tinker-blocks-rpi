@@ -11,6 +11,7 @@ from vision.ocr import OCRProtocol
 from core.config import config
 from core.types import LogLevel
 from vision.capture import capture_image_client
+from vision.capture import capture_image_local
 
 
 async def ocr_grid_workflow(
@@ -37,7 +38,7 @@ async def ocr_grid_workflow(
 
     # Step 1: Capture image
     await send_message("\n📸 Capturing image...", LogLevel.INFO)
-    image_path = capture_image_client()
+    image_path = capture_image_client() #capture_image_local() 
     await send_message(f"Using image: {image_path}", LogLevel.DEBUG)
 
     # Step 2: Load and process image

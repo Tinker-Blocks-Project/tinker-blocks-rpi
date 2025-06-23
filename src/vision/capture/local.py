@@ -1,52 +1,38 @@
 import cv2
+import depthai as dai
 import time
 import os
-from typing import Optional
+
+SAVE_DIR = "assets"
+os.makedirs(SAVE_DIR, exist_ok=True)
 
 
-def capture_image_local(
-    save_path: str = "captured_image.jpg",
-    camera_index: int = 0,
-    warmup_time: float = 2.0,
-) -> Optional[str]:
-    """
-    Capture an image using the local camera.
+def capture_image_local() -> str:
+    pipeline = dai.Pipeline()
 
-    Args:
-        save_path: Path where the image should be saved
-        camera_index: Camera device index (0 for default camera)
-        warmup_time: Time to wait for camera warmup in seconds
+    camRgb = pipeline.create(dai.node.ColorCamera)
+    xoutVideo = pipeline.create(dai.node.XLinkOut)
+    xoutVideo.setStreamName("video")
 
-    Returns:
-        Path to the saved image file, or None if capture failed
+    camRgb.setBoardSocket(dai.CameraBoardSocket.CAM_A)
+    camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
+    camRgb.initialControl.setAutoFocusMode(dai.CameraControl.AutoFocusMode.AUTO)
+    camRgb.setVideoSize(1920, 1080)
 
-    Raises:
-        RuntimeError: If camera cannot be opened or image capture fails
-    """
-    cap = cv2.VideoCapture(camera_index)
+    xoutVideo.input.setBlocking(False)
+    xoutVideo.input.setQueueSize(1)
+    camRgb.video.link(xoutVideo.input)
 
-    if not cap.isOpened():
-        raise RuntimeError(f"Cannot open camera at index {camera_index}")
+    with dai.Device(pipeline) as device:
+        video = device.getOutputQueue(name="video", maxSize=1, blocking=False)  # type: ignore
+        time.sleep(2)
 
-    try:
-        # Warm up the camera
-        time.sleep(warmup_time)
+        for _ in range(10):
+            video.tryGet()
 
-        # Capture frame
-        ret, frame = cap.read()
-        if not ret:
-            raise RuntimeError("Failed to capture frame from camera")
+        videoIn = video.get()
+        frame = videoIn.getCvFrame()
 
-        # Ensure the directory exists
-        os.makedirs(os.path.dirname(save_path), exist_ok=True)
-
-        # Save the frame
-        success = cv2.imwrite(save_path, frame)
-        if not success:
-            raise RuntimeError(f"Failed to save image to {save_path}")
-
-        return save_path
-
-    finally:
-        # Release the camera
-        cap.release()
+        filename = os.path.join(SAVE_DIR, "captured_frame.jpg")
+        cv2.imwrite(filename, frame)
+        return filename
