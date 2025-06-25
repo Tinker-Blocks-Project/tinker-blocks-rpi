@@ -21,7 +21,7 @@ class Config(BaseModel):
     ocr_server_port: int = 5000
 
     # Car API settings
-    car_api_url: str = f"http://{os.getenv('CAR_API_URL')}"
+    car_api_url: str = "http://192.168.46.224"
     car_api_timeout: float = 15.0
 
     # Grid detection corner points (hardcoded for current setup)

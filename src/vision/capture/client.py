@@ -1,7 +1,7 @@
 import requests
 import os
 
-def capture_image_client(pi_ip="172.23.228.67", save_dir="assets", save_name="downloaded_image.jpg"):
+def capture_image_client(pi_ip="raspberrypi.local", save_dir="assets", save_name="downloaded_image.jpg"):
     """
     Sends a request to the Raspberry Pi server to capture an image
     and saves it in the specified local assets folder.
